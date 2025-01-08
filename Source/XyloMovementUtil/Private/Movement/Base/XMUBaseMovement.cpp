@@ -60,7 +60,8 @@ void FXMUBaseNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Charact
 	Charge = BaseClientMove.Charge;
 }
 
-bool FXMUBaseNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType)
+bool FXMUBaseNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
+	UPackageMap* PackageMap, ENetworkMoveType MoveType)
 {
 	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
     
@@ -368,9 +369,12 @@ void UXMUBaseMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_
 	bHasBase, bBaseRelativePosition, ServerMovementMode, ServerGravityDirection);
 }
 
-bool UXMUBaseMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+bool UXMUBaseMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+	const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase,
+	FName ClientBaseBoneName, uint8 ClientMovementMode)
 {
-    if (Super::ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientWorldLocation, RelativeClientLocation, ClientMovementBase, ClientBaseBoneName, ClientMovementMode))
+    if (Super::ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientWorldLocation, RelativeClientLocation,
+    	ClientMovementBase, ClientBaseBoneName, ClientMovementMode))
     {
         return true;
     }

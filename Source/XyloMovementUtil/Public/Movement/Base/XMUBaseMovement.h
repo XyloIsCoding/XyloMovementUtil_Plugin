@@ -113,14 +113,14 @@ public:
 	// Bit masks used by GetCompressedFlags() to encode movement information.
 	enum BaseCompressedFlags
 	{
-		FLAG_Reserved_1		= 0x01,
-		FLAG_Reserved_2		= 0x02,
-		FLAG_Reserved_3		= 0x04,
-		FLAG_Reserved_4		= 0x08,
-		FLAG_Custom_0		= 0x10,
-		FLAG_Custom_1		= 0x20,
-		FLAG_Custom_2		= 0x40,
-		FLAG_Custom_3		= 0x80,
+		FLAG_Base_Custom_0		= 0x01,
+		FLAG_Base_Custom_1		= 0x02,
+		FLAG_Base_Custom_2		= 0x04,
+		FLAG_Base_Custom_3		= 0x08,
+		FLAG_Base_Custom_4		= 0x10,
+		FLAG_Base_Custom_5		= 0x20,
+		FLAG_Base_Custom_6		= 0x40,
+		FLAG_Base_Custom_7		= 0x80,
 	};
 };
 
