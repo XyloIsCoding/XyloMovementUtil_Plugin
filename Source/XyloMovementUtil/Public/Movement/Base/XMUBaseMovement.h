@@ -36,7 +36,7 @@ public:
 	typedef FCharacterNetworkMoveData Super;
  
 	FXMUBaseNetworkMoveData()
-		: BaseCompressedFlags(0)
+		: BaseCompressedMoveFlags(0)
 		, Stamina(0)
 		, Charge(0)
 	{
@@ -49,7 +49,7 @@ public:
 	 * Custom Data
 	 */
 
-	uint8 BaseCompressedFlags; // generated using FXMUSavedMove_Character_Base::GetBaseCompressedFlags
+	uint8 BaseCompressedMoveFlags; // generated using FXMUSavedMove_Character_Base::GetBaseCompressedFlags
 	float Stamina;
 	float Charge;
 	
@@ -265,6 +265,10 @@ public:
 	 * demand and can be overridden to allocate a custom override if desired. Result must be a
 	 * FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+
+protected:
+	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
+	virtual void UpdateFromBaseCompressedFlags();
 	
 private:
 	FXMUBaseMoveResponseDataContainer BaseMoveResponseDataContainer;

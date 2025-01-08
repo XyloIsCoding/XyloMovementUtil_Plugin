@@ -55,7 +55,7 @@ void FXMUBaseNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Charact
 
 	const FXMUSavedMove_Character_Base BaseClientMove = static_cast<const FXMUSavedMove_Character_Base&>(ClientMove);
 	
-	BaseCompressedFlags = BaseClientMove.GetBaseCompressedFlags();
+	BaseCompressedMoveFlags = BaseClientMove.GetBaseCompressedFlags();
 	Stamina = BaseClientMove.Stamina;
 	Charge = BaseClientMove.Charge;
 }
@@ -152,6 +152,9 @@ UXMUBaseMovement::UXMUBaseMovement(const FObjectInitializer& ObjectInitializer)
 {
 	SetMoveResponseDataContainer(BaseMoveResponseDataContainer);
 	SetNetworkMoveDataContainer(BaseMoveDataContainer);
+
+	NetworkStaminaCorrectionThreshold = 2.f;
+	NetworkChargeCorrectionThreshold = 2.f;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -397,6 +400,19 @@ FNetworkPredictionData_Client* UXMUBaseMovement::GetPredictionData_Client() cons
 	}
 
 	return ClientPredictionData;
+}
+
+void UXMUBaseMovement::MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel)
+{
+	UpdateFromBaseCompressedFlags();
+	Super::MoveAutonomous(ClientTimeStamp, DeltaTime, CompressedFlags, NewAccel);
+}
+
+void UXMUBaseMovement::UpdateFromBaseCompressedFlags()
+{
+	const FXMUBaseNetworkMoveData* CurrentMoveData = static_cast<const FXMUBaseNetworkMoveData*>(GetCurrentNetworkMoveData());
+	uint8 Flags = CurrentMoveData->BaseCompressedMoveFlags;
+	//...
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
