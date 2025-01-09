@@ -3,9 +3,30 @@
 
 #include "Movement/Base/XMUBaseMovement.h"
 
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 
-
+// Helper Macros
+#if 0
+float MacroDuration = 2.f;
+#define SLOG(x) GEngine->AddOnScreenDebugMessage(-1, MacroDuration ? MacroDuration : -1.f, FColor::Yellow, x);
+#define POINT(x, c) DrawDebugPoint(GetWorld(), x, 10, c, !MacroDuration, MacroDuration);
+#define LINE(x1, x2, c) DrawDebugLine(GetWorld(), x1, x2, c, !MacroDuration, MacroDuration);
+#define ARROW(x1, x2, c) DrawDebugDirectionalArrow(GetWorld(), x1, x2, 20.f, c, !MacroDuration, MacroDuration);
+#define BIGARROW(x1, x2, c) DrawDebugDirectionalArrow(GetWorld(), x1, x2, 60.f, c, !MacroDuration, MacroDuration, 0, 4.f);
+#define SPHERE(x, r, c) DrawDebugSphere(GetWorld(), x, r, 16, c, !MacroDuration, MacroDuration);
+#define PLAYERCAPSULE(x, c) DrawDebugCapsule(GetWorld(), x, CapHH(), CapR(), FQuat::Identity, c, !MacroDuration, MacroDuration);
+#define CAPSULE(x, r, hh, c) DrawDebugCapsule(GetWorld(), x, hh, r, FQuat::Identity, c, !MacroDuration, MacroDuration);
+#else
+#define SLOG(x) 
+#define POINT(x, c) 
+#define LINE(x1, x2, c) 
+#define ARROW(x1, x2, c) 
+#define BIGARROW(x1, x2, c) 
+#define SPHERE(x, r, c) 
+#define PLAYERCAPSULE(x, c) 
+#define CAPSULE(x, hh, r, c) 
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -157,6 +178,94 @@ UXMUBaseMovement::UXMUBaseMovement(const FObjectInitializer& ObjectInitializer)
 	NetworkStaminaCorrectionThreshold = 2.f;
 	NetworkChargeCorrectionThreshold = 2.f;
 }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* UCharacterMovementComponent Interface */
+
+void UXMUBaseMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
+{
+	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+	
+	/*----------------------------------------------------------------------------------------------------------------*/
+	/* Post Root Motion Source Transition */
+	
+	if (RootMotionSourceTransition.bFinishedLastFrame)
+	{
+		SLOG(FString::Printf(TEXT("Root Motion Transition Finished %s"), *RootMotionSourceTransition.Name))
+		UE_LOG(LogTemp, Warning, TEXT("Root Motion Transition Finished %s"), *RootMotionSourceTransition.Name)
+
+		const FString RMSTransitionName = RootMotionSourceTransition.Name;
+		RootMotionSourceTransition.Reset();
+		PostRootMotionSourceTransition(RMSTransitionName);
+	}
+	
+	/*----------------------------------------------------------------------------------------------------------------*/
+}
+
+void UXMUBaseMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
+{
+	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
+
+	/*----------------------------------------------------------------------------------------------------------------*/
+	/* Track Root Motion Source End */
+	
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		if (GetRootMotionSourceByID(RootMotionSourceTransition.ID) && GetRootMotionSourceByID(RootMotionSourceTransition.ID)->Status.HasFlag(ERootMotionSourceStatusFlags::Finished))
+		{
+			RemoveRootMotionSourceByID(RootMotionSourceTransition.ID);
+			RootMotionSourceTransition.bFinishedLastFrame = true;
+		}
+	}
+	
+	/*----------------------------------------------------------------------------------------------------------------*/
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Helpers */
+
+bool UXMUBaseMovement::IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const
+{
+	return MovementMode == MOVE_Custom && CustomMovementMode == InCustomMovementMode;
+}
+
+bool UXMUBaseMovement::IsServer() const
+{
+	return CharacterOwner->HasAuthority();
+}
+
+float UXMUBaseMovement::CapR() const
+{
+	return CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleRadius();
+}
+
+float UXMUBaseMovement::CapHH() const
+{
+	return CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+}
+
+FVector UXMUBaseMovement::GetControllerForwardVector() const
+{
+	return FRotator(0.f,CharacterOwner->GetControlRotation().Yaw,0.f).Vector();
+}
+
+FVector UXMUBaseMovement::GetControllerRightVector() const
+{
+	return FVector::CrossProduct(FVector::DownVector, GetControllerForwardVector());
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Root Motion Source Transitions */
+
+void UXMUBaseMovement::PostRootMotionSourceTransition(FString TransitionName)
+{
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Stamina */

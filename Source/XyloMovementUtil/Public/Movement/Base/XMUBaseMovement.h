@@ -160,6 +160,38 @@ public:
  */
 
 
+UENUM()
+enum ECustomMovementMode
+{
+	CMOVE_None UMETA(Hidden),
+	
+};
+
+USTRUCT()
+struct FXMURootMotionSource
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	FString Name;
+	UPROPERTY()
+	TSharedPtr<FRootMotionSource_MoveToForce> RMS = nullptr;
+	UPROPERTY()
+	int16 ID = 0;
+	UPROPERTY()
+	bool bFinishedLastFrame = false;
+
+	virtual void Reset()
+	{
+		Name = NAME_None;
+		RMS.Reset();
+		ID = 0;
+		bFinishedLastFrame = false;
+	}
+};
+
+
 /**
  * 
  */
@@ -171,6 +203,42 @@ class XYLOMOVEMENTUTIL_API UXMUBaseMovement : public UCharacterMovementComponent
 public:
 	UXMUBaseMovement(const FObjectInitializer& ObjectInitializer);
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* UCharacterMovementComponent Interface */
+
+public:
+	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
+	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Helpers */
+	
+public:
+	UFUNCTION(BlueprintPure)
+	virtual bool IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const;
+
+protected:
+	virtual bool IsServer() const;
+	virtual float CapR() const;
+	virtual float CapHH() const;
+
+	virtual FVector GetControllerForwardVector() const;
+	virtual FVector GetControllerRightVector() const;
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Root Motion Transitions */
+
+protected:
+	virtual void PostRootMotionSourceTransition(FString TransitionName);
+protected:
+	FXMURootMotionSource RootMotionSourceTransition;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Stamina */
 	
