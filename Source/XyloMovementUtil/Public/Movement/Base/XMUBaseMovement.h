@@ -15,7 +15,10 @@
 struct XYLOMOVEMENTUTIL_API FXMUBaseMoveResponseDataContainer : FCharacterMoveResponseDataContainer
 {
 	using Super = FCharacterMoveResponseDataContainer;
-	
+
+	/**
+	 * Copy the FClientAdjustment and set a few flags relevant to that data.
+	 */
 	virtual void ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment) override;
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap) override;
 
@@ -41,7 +44,12 @@ public:
 		, Charge(0)
 	{
 	}
- 
+
+	/**
+	 * Given a FSavedMove_Character from UCharacterMovementComponent, fill in data in this struct with relevant movement data.
+	 * Note that the instance of the FSavedMove_Character is likely a custom struct of a derived struct of your own, if you have added your own saved move data.
+	 * @see UCharacterMovementComponent::AllocateNewMove()
+	 */
 	virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
 
@@ -103,10 +111,18 @@ public:
 	float Charge;
 	uint32 bChargeDrained : 1;
 
+	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
-	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
-	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
+	/** Set the properties describing the position, etc. of the moved pawn at the start of the move. */
 	virtual void SetInitialPosition(ACharacter* C) override;
+	/** Returns true if this move can be combined with NewMove for replication without changing any behavior */
+	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
+	/** Combine this move with an older move and update relevant state. */
+	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
+	/** Called to set up this saved move (when initially created) to make a predictive correction. */
+	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData) override;
+	/** Called before ClientUpdatePosition uses this SavedMove to make a predictive correction	 */
+	virtual void PrepMoveFor(ACharacter* C) override;
 	/** Generate a compressed flags based on saved moved variables */
 	virtual uint8 GetBaseCompressedFlags() const;
 
@@ -233,6 +249,7 @@ protected:
 	/* Root Motion Transitions */
 
 protected:
+	/** Override to run logic after playing a root motion source transition */
 	virtual void PostRootMotionSourceTransition(FString TransitionName);
 protected:
 	FXMURootMotionSource RootMotionSourceTransition;

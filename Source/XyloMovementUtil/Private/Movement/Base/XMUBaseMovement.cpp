@@ -107,6 +107,19 @@ void FXMUSavedMove_Character_Base::Clear()
 	bChargeDrained = false;
 }
 
+void FXMUSavedMove_Character_Base::SetInitialPosition(ACharacter* C)
+{
+	Super::SetInitialPosition(C);
+
+	if (const UXMUBaseMovement* MoveComp = C ? Cast<UXMUBaseMovement>(C->GetCharacterMovement()) : nullptr)
+	{
+		Stamina = MoveComp->GetStamina();
+		bStaminaDrained = MoveComp->IsStaminaDrained();
+		Charge = MoveComp->GetCharge();
+		bChargeDrained = MoveComp->IsChargeDrained();
+	}
+}
+
 bool FXMUSavedMove_Character_Base::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
 	float MaxDelta) const
 {
@@ -141,17 +154,14 @@ void FXMUSavedMove_Character_Base::CombineWith(const FSavedMove_Character* OldMo
 	}
 }
 
-void FXMUSavedMove_Character_Base::SetInitialPosition(ACharacter* C)
+void FXMUSavedMove_Character_Base::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData)
 {
-	Super::SetInitialPosition(C);
+	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
+}
 
-	if (const UXMUBaseMovement* MoveComp = C ? Cast<UXMUBaseMovement>(C->GetCharacterMovement()) : nullptr)
-	{
-		Stamina = MoveComp->GetStamina();
-		bStaminaDrained = MoveComp->IsStaminaDrained();
-		Charge = MoveComp->GetCharge();
-		bChargeDrained = MoveComp->IsChargeDrained();
-	}
+void FXMUSavedMove_Character_Base::PrepMoveFor(ACharacter* C)
+{
+	FSavedMove_Character::PrepMoveFor(C);
 }
 
 uint8 FXMUSavedMove_Character_Base::GetBaseCompressedFlags() const
