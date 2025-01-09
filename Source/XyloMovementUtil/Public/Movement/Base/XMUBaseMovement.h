@@ -177,7 +177,7 @@ public:
 
 
 UENUM()
-enum ECustomMovementMode
+enum EXMUCustomMovementMode
 {
 	CMOVE_None UMETA(Hidden),
 	
@@ -190,9 +190,8 @@ struct FXMURootMotionSource
 
 public:
 	UPROPERTY()
-	FString Name;
-	UPROPERTY()
-	TSharedPtr<FRootMotionSource_MoveToForce> RMS = nullptr;
+	FString Name = "";
+	TSharedPtr<FRootMotionSource_MoveToForce> RMS;
 	UPROPERTY()
 	int16 ID = 0;
 	UPROPERTY()
@@ -200,7 +199,7 @@ public:
 
 	virtual void Reset()
 	{
-		Name = NAME_None;
+		Name = "";
 		RMS.Reset();
 		ID = 0;
 		bFinishedLastFrame = false;
@@ -233,7 +232,7 @@ public:
 	
 public:
 	UFUNCTION(BlueprintPure)
-	virtual bool IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const;
+	virtual bool IsCustomMovementMode(EXMUCustomMovementMode InCustomMovementMode) const;
 
 protected:
 	virtual bool IsServer() const;

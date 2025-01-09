@@ -236,7 +236,7 @@ void UXMUBaseMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Helpers */
 
-bool UXMUBaseMovement::IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const
+bool UXMUBaseMovement::IsCustomMovementMode(EXMUCustomMovementMode InCustomMovementMode) const
 {
 	return MovementMode == MOVE_Custom && CustomMovementMode == InCustomMovementMode;
 }
