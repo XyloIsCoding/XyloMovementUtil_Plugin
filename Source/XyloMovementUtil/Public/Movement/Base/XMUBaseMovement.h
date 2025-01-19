@@ -168,6 +168,8 @@ public:
 
 
 
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*--------------------------------------------------------------------------------------------------------------------*/
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +210,31 @@ public:
 
 
 /**
+ * FXMUCharacterGroundInfo
+ *
+ *	Information about the ground under the character.  It only gets updated as needed.
+ */
+USTRUCT(BlueprintType)
+struct FXMUCharacterGroundInfo
+{
+	GENERATED_BODY()
+
+	FXMUCharacterGroundInfo()
+		: LastUpdateFrame(0)
+		, GroundDistance(0.0f)
+	{}
+
+	uint64 LastUpdateFrame;
+
+	UPROPERTY(BlueprintReadOnly)
+	FHitResult GroundHitResult;
+
+	UPROPERTY(BlueprintReadOnly)
+	float GroundDistance;
+};
+
+
+/**
  * 
  */
 UCLASS()
@@ -218,14 +245,22 @@ class XYLOMOVEMENTUTIL_API UXMUBaseMovement : public UCharacterMovementComponent
 public:
 	UXMUBaseMovement(const FObjectInitializer& ObjectInitializer);
 
-/*--------------------------------------------------------------------------------------------------------------------*/
-	/* UCharacterMovementComponent Interface */
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * UCharacterMovementComponent Interface
+	 */
 
 public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
+	virtual void SimulateMovement(float DeltaTime) override;
 	
-/*--------------------------------------------------------------------------------------------------------------------*/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * UXMUBaseMovement
+	 */
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Helpers */
@@ -241,6 +276,26 @@ protected:
 
 	virtual FVector GetControllerForwardVector() const;
 	virtual FVector GetControllerRightVector() const;
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+	/* Extension */
+
+public:
+	void SetReplicatedAcceleration(const FVector& InAcceleration);
+protected:
+	UPROPERTY(Transient)
+	bool bHasReplicatedAcceleration = false;
+
+public:
+	// Returns the current ground info.  Calling this will update the ground info if it's out of date.
+	UFUNCTION(BlueprintCallable, Category = "XyloMovementUtil|CharacterMovement")
+	const FXMUCharacterGroundInfo& GetGroundInfo();
+protected:
+	// Cached ground info for the character.  Do not access this directly!  It's only updated when accessed via GetGroundInfo().
+	FXMUCharacterGroundInfo CachedGroundInfo;
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
