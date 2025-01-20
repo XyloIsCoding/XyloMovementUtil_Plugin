@@ -3,53 +3,37 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "Movement/Foundation/XMUFoundationCharacter.h"
 #include "XMUBaseCharacter.generated.h"
 
-
+class UXMUBaseMovement;
 /**
- * FXMUReplicatedAcceleration: Compressed representation of acceleration
+ * 
  */
-USTRUCT()
-struct FXMUReplicatedAcceleration
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	uint8 AccelXYRadians = 0;	// Direction of XY accel component, quantized to represent [0, 2*pi]
-
-	UPROPERTY()
-	uint8 AccelXYMagnitude = 0;	//Accel rate of XY component, quantized to represent [0, MaxAcceleration]
-
-	UPROPERTY()
-	int8 AccelZ = 0;	// Raw Z accel rate component, quantized to represent [-MaxAcceleration, MaxAcceleration]
-};
-
-
 UCLASS()
-class XYLOMOVEMENTUTIL_API AXMUBaseCharacter : public ACharacter
+class XYLOMOVEMENTUTIL_API AXMUBaseCharacter : public AXMUFoundationCharacter
 {
 	GENERATED_BODY()
 
 public:
 	AXMUBaseCharacter(const FObjectInitializer& ObjectInitializer);
 
-public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
-	 * AXMUBaseCharacter
+	 * ACharacter Interface
+	 */
+	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * AXMUFoundationCharacter
 	 */
 
-protected:
-	UFUNCTION()
-	void OnRep_ReplicatedAcceleration();
+public:
+	UXMUBaseMovement* GetBaseMovement() const { return BaseMovement; }
 private:
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_ReplicatedAcceleration)
-	FXMUReplicatedAcceleration ReplicatedAcceleration;
-
-
+	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
+	UPROPERTY(Category=Character, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	TObjectPtr<UXMUBaseMovement> BaseMovement;
 };
