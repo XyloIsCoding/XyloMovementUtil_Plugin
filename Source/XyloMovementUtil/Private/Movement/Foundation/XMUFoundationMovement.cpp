@@ -107,17 +107,35 @@ void FXMUSavedMove_Character_Foundation::Clear()
 	bChargeDrained = false;
 }
 
-bool FXMUSavedMove_Character_Foundation::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
-	float MaxDelta) const
+bool FXMUSavedMove_Character_Foundation::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
 {
-	const TSharedPtr<FXMUSavedMove_Character_Foundation>& SavedMove = StaticCastSharedPtr<FXMUSavedMove_Character_Foundation>(NewMove);
+	const TSharedPtr<FXMUSavedMove_Character_Foundation>& LastFoundationAckedMove = StaticCastSharedPtr<FXMUSavedMove_Character_Foundation>(LastAckedMove);
+	
+	// Check if any important movement flags have changed status.
+	if (GetFoundationCompressedFlags() != LastFoundationAckedMove->GetFoundationCompressedFlags())
+	{
+		return true;
+	}
+	
+	return FSavedMove_Character::IsImportantMove(LastAckedMove);
+}
 
-	if (bStaminaDrained != SavedMove->bStaminaDrained)
+bool FXMUSavedMove_Character_Foundation::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const
+{
+	const TSharedPtr<FXMUSavedMove_Character_Foundation>& NewFoundationMove = StaticCastSharedPtr<FXMUSavedMove_Character_Foundation>(NewMove);
+
+	if (bStaminaDrained != NewFoundationMove->bStaminaDrained)
 	{
 		return false;
 	}
 
-	if (bChargeDrained != SavedMove->bChargeDrained)
+	if (bChargeDrained != NewFoundationMove->bChargeDrained)
+	{
+		return false;
+	}
+
+	// Compressed flags not equal, can't combine. This covers jump and crouch as well as any custom movement flags from overrides.
+	if (GetFoundationCompressedFlags() != NewFoundationMove->GetFoundationCompressedFlags())
 	{
 		return false;
 	}
@@ -130,14 +148,14 @@ void FXMUSavedMove_Character_Foundation::CombineWith(const FSavedMove_Character*
 {
 	Super::CombineWith(OldMove, C, PC, OldStartLocation);
 
-	const FXMUSavedMove_Character_Foundation* SavedOldMove = static_cast<const FXMUSavedMove_Character_Foundation*>(OldMove);
+	const FXMUSavedMove_Character_Foundation* OldFoundationMove = static_cast<const FXMUSavedMove_Character_Foundation*>(OldMove);
 
 	if (UXMUFoundationMovement* MoveComp = C ? Cast<UXMUFoundationMovement>(C->GetCharacterMovement()) : nullptr)
 	{
-		MoveComp->SetStamina(SavedOldMove->Stamina);
-		MoveComp->SetStaminaDrained(SavedOldMove->bStaminaDrained);
-		MoveComp->SetCharge(SavedOldMove->Charge);
-		MoveComp->SetChargeDrained(SavedOldMove->bChargeDrained);
+		MoveComp->SetStamina(OldFoundationMove->Stamina);
+		MoveComp->SetStaminaDrained(OldFoundationMove->bStaminaDrained);
+		MoveComp->SetCharge(OldFoundationMove->Charge);
+		MoveComp->SetChargeDrained(OldFoundationMove->bChargeDrained);
 	}
 }
 

@@ -114,13 +114,17 @@ public:
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
 
+	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const override;
+	
 	/** Returns true if this move can be combined with NewMove for replication without changing any behavior 
-	 * <p> Call Context: Called in ReplicateMoveToServer between SetMoveFor and PerformMovement */
+	 * <p> Call Context: Called in ReplicateMoveToServer between SetMoveFor and PerformMovement
+	 * <p> Note: Returns true if nothing important changed during last update */
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 
 	/** Combine this move with an older move and update relevant state. 
 	 * <p> Call Context: Called in ReplicateMoveToServer if CanCombineWith returns true
-	 * <p> Note: reverts state to OldMove??? then call SetInitialPosition */
+	 * <p> Note: Since nothing changed since PendingMove, we merge PendingMove and NewMove, and simulate
+	 *			 both together, which means reverting the Character / CMC state to the PendingMove */
 	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
 
 	/** Called to set up this saved move (when initially created) to make a predictive correction.
@@ -128,7 +132,9 @@ public:
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData) override;
 
 	/** Set the properties describing the position, etc. of the moved pawn at the start of the move.
-	 * <p> Call Context: Called in SetMoveFor and in ReplicateMoveToServer if we called CombineWith */
+	 * <p> Call Context: Called in SetMoveFor and in ReplicateMoveToServer if we called CombineWith
+	 * <p> Note: Here we set the values in this SavedMove that will change during PerformMovement. We do it here because
+	 *			 it will update this move after CombineWith (thus setting this move values to the PendingMove one) */
 	virtual void SetInitialPosition(ACharacter* C) override;
 
 	/** Called before ClientUpdatePosition uses this SavedMove to make a predictive correction
