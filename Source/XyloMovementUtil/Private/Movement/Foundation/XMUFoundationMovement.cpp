@@ -259,6 +259,9 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
 
 	NetworkStaminaCorrectionThreshold = 2.f;
 	NetworkChargeCorrectionThreshold = 2.f;
+
+	SetStamina(MaxStamina);
+	SetCharge(MaxCharge);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -289,6 +292,9 @@ void UXMUFoundationMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComp
 void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+
+	SetStamina(GetStamina() + StaminaRegenRate * DeltaSeconds);
+	SetCharge(GetCharge() + ChargeRegenRate * DeltaSeconds);
 	
 	// Proxies get replicated jump / ledge state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)

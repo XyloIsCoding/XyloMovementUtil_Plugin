@@ -422,7 +422,9 @@ protected:
 	UPROPERTY()
 	float Stamina;
 private:
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category = "Stamina")
+	bool StaminaRegenRate;
+	UPROPERTY(EditDefaultsOnly, Category = "Stamina")
 	float MaxStamina;
 	UPROPERTY()
 	bool bStaminaDrained;
@@ -461,7 +463,9 @@ protected:
 	UPROPERTY()
 	float Charge;
 private:
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category = "Charge")
+	float ChargeRegenRate;
+	UPROPERTY(EditDefaultsOnly, Category = "Charge")
 	float MaxCharge;
 	UPROPERTY()
 	bool bChargeDrained;
