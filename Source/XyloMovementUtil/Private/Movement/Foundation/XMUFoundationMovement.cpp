@@ -259,9 +259,9 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
 
 	NetworkStaminaCorrectionThreshold = 2.f;
 	NetworkChargeCorrectionThreshold = 2.f;
-
-	SetStamina(MaxStamina);
-	SetCharge(MaxCharge);
+	
+	SetStamina(DefaultMaxStamina);
+	SetCharge(DefaultMaxCharge);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
