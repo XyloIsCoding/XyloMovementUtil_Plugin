@@ -735,8 +735,8 @@ void UXMUFoundationMovement::OnChargeChanged(float PrevValue, float NewValue)
 /* Networking stuff */
 
 bool UXMUFoundationMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
-													const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementFoundation,
-													FName ClientFoundationBoneName, uint8 ClientMovementMode)
+	const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementFoundation,
+	FName ClientFoundationBoneName, uint8 ClientMovementMode)
 {
 	if (Super::ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientWorldLocation, RelativeClientLocation,
 		ClientMovementFoundation, ClientFoundationBoneName, ClientMovementMode))
@@ -778,7 +778,17 @@ void UXMUFoundationMovement::OnClientCorrectionReceived(FNetworkPredictionData_C
 
 bool UXMUFoundationMovement::ClientUpdatePositionAfterServerUpdate()
 {
-	return Super::ClientUpdatePositionAfterServerUpdate();
+	const bool bRealARMTFinishedLastFrame = AnimRootMotionTransition.bFinishedLastFrame;
+	const bool bRealRMSTFinishedLastFrame = RootMotionSourceTransition.bFinishedLastFrame;
+	const bool bPressedJumpOverride = FoundationCharacterOwner->bPressedJumpOverride;
+	
+	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
+
+	AnimRootMotionTransition.bFinishedLastFrame = bRealARMTFinishedLastFrame;
+	RootMotionSourceTransition.bFinishedLastFrame = bRealRMSTFinishedLastFrame;
+	FoundationCharacterOwner->bPressedJumpOverride = bPressedJumpOverride;
+
+	return bResult;
 }
 
 void UXMUFoundationMovement::UpdateFromFoundationCompressedFlags()
