@@ -12,6 +12,8 @@
  *	call UCharacterMovementComponent::SetMoveResponseDataContainer in cmc constructor to use this class
  */
 
+class AXMUFoundationCharacter;
+
 struct XYLOMOVEMENTUTIL_API FXMUFoundationMoveResponseDataContainer : FCharacterMoveResponseDataContainer
 {
 	using Super = FCharacterMoveResponseDataContainer;
@@ -100,6 +102,11 @@ public:
 		, bStaminaDrained(0)
 		, Charge(0)
 		, bChargeDrained(0)
+		, AnimRootMotionTransitionName("")
+		, bAnimRootMotionTransitionFinishedLastFrame(0)
+		, RootMotionSourceTransitionName("")
+		, bRootMotionSourceTransitionFinishedLastFrame(0)
+		, bPressedJumpOverride(0)
 	{
 	}
 
@@ -110,6 +117,13 @@ public:
 	uint32 bStaminaDrained : 1;
 	float Charge;
 	uint32 bChargeDrained : 1;
+
+	FString AnimRootMotionTransitionName;
+	uint32 bAnimRootMotionTransitionFinishedLastFrame : 1;
+	FString RootMotionSourceTransitionName;
+	uint32 bRootMotionSourceTransitionFinishedLastFrame : 1;
+	
+	uint32 bPressedJumpOverride : 1;
 
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
@@ -152,7 +166,7 @@ public:
 	// Bit masks used by GetCompressedFlags() to encode movement information.
 	enum FoundationCompressedFlags
 	{
-		FLAG_Foundation_Custom_0		= 0x01,
+		FLAG_Foundation_JumpOverride	= 0x01,
 		FLAG_Foundation_Custom_1		= 0x02,
 		FLAG_Foundation_Custom_2		= 0x04,
 		FLAG_Foundation_Custom_3		= 0x08,
@@ -295,9 +309,16 @@ public:
 	 */
 
 public:
+	virtual bool HasValidData() const override;
+	virtual void PostLoad() override;
+	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 	virtual void SimulateMovement(float DeltaTime) override;
+	virtual bool CanAttemptJump() const override;
+	virtual bool DoJump(bool bReplayingMoves) override;
+protected:
+	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -307,6 +328,10 @@ public:
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Helpers */
+
+private:
+	UPROPERTY(Transient, DuplicateTransient)
+	TObjectPtr<AXMUFoundationCharacter> FoundationCharacterOwner;
 	
 public:
 	UFUNCTION(BlueprintPure)
@@ -337,31 +362,34 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "XyloMovementUtil|CharacterMovement")
 	const FXMUCharacterGroundInfo& GetGroundInfo();
 protected:
-	// Cached ground info for the character.  Do not access this directly!  It's only updated when accessed via GetGroundInfo().
+	// Cached ground info for the character.  Do not access this directly! It's only updated when accessed via GetGroundInfo().
 	FXMUCharacterGroundInfo CachedGroundInfo;
+
+	virtual bool CheckOverrideJumpInput(float DeltaSeconds);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Anim Root Motion Transitions */
 
+public:
+	FXMUAnimRootMotion AnimRootMotionTransition;
 protected:
 	/** Override to run logic after playing a root motion source transition */
 	virtual void PostAnimRootMotionTransition(FString TransitionName);
 protected:
 	bool bHadAnimRootMotion = false;
-	FXMUAnimRootMotion AnimRootMotionTransition;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Root Motion Source Transitions */
 
+public:
+	FXMURootMotionSource RootMotionSourceTransition;
 protected:
 	/** Override to run logic after playing a root motion source transition */
 	virtual void PostRootMotionSourceTransition(FString TransitionName);
-protected:
-	FXMURootMotionSource RootMotionSourceTransition;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
@@ -447,23 +475,29 @@ private:
 	/* Networking stuff */
 
 public:
+	/** Check for Server-Client disagreement in position or other movement state important enough to trigger a client
+	 * correction. */
+	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+			const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
+			UPrimitiveComponent* ClientMovementFoundation, FName ClientFoundationBoneName, uint8 ClientMovementMode) override;
+	/** Event notification when client receives correction data from the server, before applying the data. Base
+	 * implementation logs relevant data and draws debug info if "p.NetShowCorrections" is not equal to 0.
+	 * <p> Call Context: called by ClientAdjustPosition_Implementation */
 	virtual void OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 		FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewFoundation, FName NewFoundationBoneName, bool bHasFoundation,
 		bool bFoundationRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection) override;
+protected:
+	/** If bUpdatePosition is true, then replay any unacked moves. Returns whether any moves were actually replayed.
+	 * <p> Call Context: called by TickComponent */ 
+	virtual bool ClientUpdatePositionAfterServerUpdate() override;
 	
-	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
-		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
-		UPrimitiveComponent* ClientMovementFoundation, FName ClientFoundationBoneName, uint8 ClientMovementMode) override;
-
+protected:
+	virtual void UpdateFromFoundationCompressedFlags();
+public:
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on
 	 * demand and can be overridden to allocate a custom override if desired. Result must be a
 	 * FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
-
-protected:
-	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
-	virtual void UpdateFromFoundationCompressedFlags();
-	
 private:
 	FXMUFoundationMoveResponseDataContainer FoundationMoveResponseDataContainer;
 	FXMUFoundationNetworkMoveDataContainer FoundationMoveDataContainer;

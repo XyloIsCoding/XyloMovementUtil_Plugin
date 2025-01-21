@@ -44,11 +44,46 @@ void AXMUFoundationCharacter::PreReplication(IRepChangedPropertyTracker& Changed
 	}
 }
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Jump */
+
+void AXMUFoundationCharacter::Jump()
+{
+	Super::Jump();
+	bPressedJump = false;
+	bPressedJumpOverride = true;
+}
+
+void AXMUFoundationCharacter::StopJumping()
+{
+	bPressedJumpOverride = false;
+	Super::StopJumping();
+}
+
+bool AXMUFoundationCharacter::CanJumpInternal_Implementation() const
+{
+	return JumpIsAllowedInternal(); // removed !bIsCrouched
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
  * AXMUFoundationCharacter
  */
+
+FCollisionQueryParams AXMUFoundationCharacter::GetIgnoreCharacterParams() const
+{
+	FCollisionQueryParams Params;
+
+	TArray<AActor*> CharacterChildren;
+	GetAllChildActors(CharacterChildren);
+	Params.AddIgnoredActors(CharacterChildren);
+	Params.AddIgnoredActor(this);
+
+	return Params;
+}
 
 void AXMUFoundationCharacter::OnRep_ReplicatedAcceleration()
 {

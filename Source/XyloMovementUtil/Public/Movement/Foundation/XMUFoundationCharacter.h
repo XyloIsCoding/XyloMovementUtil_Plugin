@@ -46,6 +46,20 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Jump */
+
+public:
+	bool bPressedJumpOverride;
+public:
+	virtual void Jump() override;
+	virtual void StopJumping() override;
+protected:
+	virtual bool CanJumpInternal_Implementation() const override;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -59,6 +73,9 @@ private:
 	UPROPERTY(Category=Character, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UXMUFoundationMovement> FoundationMovement;
 
+public:
+	FCollisionQueryParams GetIgnoreCharacterParams() const;
+	
 protected:
 	UFUNCTION()
 	void OnRep_ReplicatedAcceleration();

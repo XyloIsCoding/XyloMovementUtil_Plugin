@@ -5,6 +5,7 @@
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
+#include "Movement/Foundation/XMUFoundationCharacter.h"
 
 // Helper Macros
 #if 0
@@ -105,6 +106,13 @@ void FXMUSavedMove_Character_Foundation::Clear()
 	bStaminaDrained = false;
 	Charge = 0.f;
 	bChargeDrained = false;
+
+	AnimRootMotionTransitionName = "";
+	bAnimRootMotionTransitionFinishedLastFrame = false;
+	RootMotionSourceTransitionName = "";
+	bRootMotionSourceTransitionFinishedLastFrame = false;
+
+	bPressedJumpOverride = false;
 }
 
 bool FXMUSavedMove_Character_Foundation::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
@@ -130,6 +138,16 @@ bool FXMUSavedMove_Character_Foundation::CanCombineWith(const FSavedMovePtr& New
 	}
 
 	if (bChargeDrained != NewFoundationMove->bChargeDrained)
+	{
+		return false;
+	}
+
+	if (bAnimRootMotionTransitionFinishedLastFrame != NewFoundationMove->bAnimRootMotionTransitionFinishedLastFrame)
+	{
+		return false;
+	}
+
+	if (bRootMotionSourceTransitionFinishedLastFrame != NewFoundationMove->bRootMotionSourceTransitionFinishedLastFrame)
 	{
 		return false;
 	}
@@ -162,6 +180,16 @@ void FXMUSavedMove_Character_Foundation::CombineWith(const FSavedMove_Character*
 void FXMUSavedMove_Character_Foundation::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData)
 {
 	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
+
+	AXMUFoundationCharacter* FoundationCharacter = Cast<AXMUFoundationCharacter>(C);
+	UXMUFoundationMovement* FoundationMovement = Cast<UXMUFoundationMovement>(C->GetCharacterMovement());
+	
+	AnimRootMotionTransitionName = FoundationMovement->AnimRootMotionTransition.Name;
+	bAnimRootMotionTransitionFinishedLastFrame = FoundationMovement->AnimRootMotionTransition.bFinishedLastFrame;
+	RootMotionSourceTransitionName = FoundationMovement->RootMotionSourceTransition.Name;
+	bRootMotionSourceTransitionFinishedLastFrame = FoundationMovement->RootMotionSourceTransition.bFinishedLastFrame;
+
+	bPressedJumpOverride = FoundationCharacter->bPressedJumpOverride;
 }
 
 void FXMUSavedMove_Character_Foundation::SetInitialPosition(ACharacter* C)
@@ -180,6 +208,16 @@ void FXMUSavedMove_Character_Foundation::SetInitialPosition(ACharacter* C)
 void FXMUSavedMove_Character_Foundation::PrepMoveFor(ACharacter* C)
 {
 	FSavedMove_Character::PrepMoveFor(C);
+
+	AXMUFoundationCharacter* FoundationCharacter = Cast<AXMUFoundationCharacter>(C);
+	UXMUFoundationMovement* FoundationMovement = Cast<UXMUFoundationMovement>(C->GetCharacterMovement());
+	
+	FoundationMovement->AnimRootMotionTransition.Name = AnimRootMotionTransitionName;
+	FoundationMovement->AnimRootMotionTransition.bFinishedLastFrame = bAnimRootMotionTransitionFinishedLastFrame;
+	FoundationMovement->RootMotionSourceTransition.Name = RootMotionSourceTransitionName;
+	FoundationMovement->RootMotionSourceTransition.bFinishedLastFrame = bRootMotionSourceTransitionFinishedLastFrame;
+
+	FoundationCharacter->bPressedJumpOverride = bPressedJumpOverride;
 }
 
 void FXMUSavedMove_Character_Foundation::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
@@ -191,6 +229,11 @@ uint8 FXMUSavedMove_Character_Foundation::GetFoundationCompressedFlags() const
 {
 	uint8 Result = 0;
 
+	if (bPressedJumpOverride)
+	{
+		Result |= FLAG_Foundation_JumpOverride;
+	}
+	
 	return Result;
 }
 
@@ -224,9 +267,46 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
  * UCharacterMovementComponent Interface
  */
 
+bool UXMUFoundationMovement::HasValidData() const
+{
+	return Super::HasValidData() && FoundationCharacterOwner;
+}
+
+void UXMUFoundationMovement::PostLoad()
+{
+	Super::PostLoad();
+
+	FoundationCharacterOwner = Cast<AXMUFoundationCharacter>(CharacterOwner);
+}
+
+void UXMUFoundationMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
+{
+	Super::SetUpdatedComponent(NewUpdatedComponent);
+
+	FoundationCharacterOwner = Cast<AXMUFoundationCharacter>(CharacterOwner);
+}
+
 void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+	
+	// Proxies get replicated jump / ledge state.
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		if (FoundationCharacterOwner->bPressedJumpOverride)
+		{
+			if (CheckOverrideJumpInput(DeltaSeconds))
+			{
+				FoundationCharacterOwner->StopJumping();
+			}
+			else
+			{
+				FoundationCharacterOwner->bPressedJumpOverride = false;
+				CharacterOwner->bPressedJump = true;
+				CharacterOwner->CheckJumpInput(DeltaSeconds);
+			}
+		}
+	}
 
 	/*----------------------------------------------------------------------------------------------------------------*/
 	/* Post Anim Root Motion Transition */
@@ -312,6 +392,22 @@ void UXMUFoundationMovement::SimulateMovement(float DeltaTime)
 		Acceleration = OriginalAcceleration;
 	}
 	/*----------------------------------------------------------------------------------------------------------------*/
+}
+
+bool UXMUFoundationMovement::CanAttemptJump() const
+{
+	return Super::CanAttemptJump();
+}
+
+bool UXMUFoundationMovement::DoJump(bool bReplayingMoves)
+{
+	return Super::DoJump(bReplayingMoves);
+}
+
+void UXMUFoundationMovement::MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel)
+{
+	UpdateFromFoundationCompressedFlags();
+	Super::MoveAutonomous(ClientTimeStamp, DeltaTime, CompressedFlags, NewAccel);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -410,6 +506,11 @@ const FXMUCharacterGroundInfo& UXMUFoundationMovement::GetGroundInfo()
 	CachedGroundInfo.LastUpdateFrame = GFrameCounter;
 
 	return CachedGroundInfo;
+}
+
+bool UXMUFoundationMovement::CheckOverrideJumpInput(float DeltaSeconds)
+{
+	return false;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -627,6 +728,32 @@ void UXMUFoundationMovement::OnChargeChanged(float PrevValue, float NewValue)
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Networking stuff */
 
+bool UXMUFoundationMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+													const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementFoundation,
+													FName ClientFoundationBoneName, uint8 ClientMovementMode)
+{
+	if (Super::ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientWorldLocation, RelativeClientLocation,
+		ClientMovementFoundation, ClientFoundationBoneName, ClientMovementMode))
+	{
+		return true;
+	}
+    
+	// This will trigger a client correction if the Stamina value in the Client differs NetworkStaminaCorrectionThreshold (2.f default) units from the one in the server
+	// Desyncs can happen if we set the Stamina directly in Gameplay code (ie: GAS)
+	const FXMUFoundationNetworkMoveData* CurrentMoveData = static_cast<const FXMUFoundationNetworkMoveData*>(GetCurrentNetworkMoveData());
+
+	if (!FMath::IsNearlyEqual(CurrentMoveData->Stamina, Stamina, NetworkStaminaCorrectionThreshold))
+	{
+		return true;
+	}
+	if (!FMath::IsNearlyEqual(CurrentMoveData->Charge, Charge, NetworkChargeCorrectionThreshold))
+	{
+		return true;
+	}
+    
+	return false;
+}
+
 void UXMUFoundationMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewFoundation, FName NewFoundationBoneName, bool bHasFoundation,
 	bool bFoundationRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection)
@@ -643,30 +770,17 @@ void UXMUFoundationMovement::OnClientCorrectionReceived(FNetworkPredictionData_C
 	bHasFoundation, bFoundationRelativePosition, ServerMovementMode, ServerGravityDirection);
 }
 
-bool UXMUFoundationMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
-	const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementFoundation,
-	FName ClientFoundationBoneName, uint8 ClientMovementMode)
+bool UXMUFoundationMovement::ClientUpdatePositionAfterServerUpdate()
 {
-    if (Super::ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientWorldLocation, RelativeClientLocation,
-    	ClientMovementFoundation, ClientFoundationBoneName, ClientMovementMode))
-    {
-        return true;
-    }
-    
-	// This will trigger a client correction if the Stamina value in the Client differs NetworkStaminaCorrectionThreshold (2.f default) units from the one in the server
-	// Desyncs can happen if we set the Stamina directly in Gameplay code (ie: GAS)
-    const FXMUFoundationNetworkMoveData* CurrentMoveData = static_cast<const FXMUFoundationNetworkMoveData*>(GetCurrentNetworkMoveData());
+	return Super::ClientUpdatePositionAfterServerUpdate();
+}
 
-	if (!FMath::IsNearlyEqual(CurrentMoveData->Stamina, Stamina, NetworkStaminaCorrectionThreshold))
-    {
-        return true;
-    }
-	if (!FMath::IsNearlyEqual(CurrentMoveData->Charge, Charge, NetworkChargeCorrectionThreshold))
-	{
-		return true;
-	}
-    
-    return false;
+void UXMUFoundationMovement::UpdateFromFoundationCompressedFlags()
+{
+	const FXMUFoundationNetworkMoveData* CurrentMoveData = static_cast<const FXMUFoundationNetworkMoveData*>(GetCurrentNetworkMoveData());
+	uint8 Flags = CurrentMoveData->FoundationCompressedMoveFlags;
+
+	FoundationCharacterOwner->bPressedJumpOverride = ((Flags & FXMUSavedMove_Character_Foundation::FLAG_Foundation_JumpOverride) != 0);
 }
 
 FNetworkPredictionData_Client* UXMUFoundationMovement::GetPredictionData_Client() const
@@ -678,19 +792,6 @@ FNetworkPredictionData_Client* UXMUFoundationMovement::GetPredictionData_Client(
 	}
 
 	return ClientPredictionData;
-}
-
-void UXMUFoundationMovement::MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel)
-{
-	UpdateFromFoundationCompressedFlags();
-	Super::MoveAutonomous(ClientTimeStamp, DeltaTime, CompressedFlags, NewAccel);
-}
-
-void UXMUFoundationMovement::UpdateFromFoundationCompressedFlags()
-{
-	const FXMUFoundationNetworkMoveData* CurrentMoveData = static_cast<const FXMUFoundationNetworkMoveData*>(GetCurrentNetworkMoveData());
-	uint8 Flags = CurrentMoveData->FoundationCompressedMoveFlags;
-	//...
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
