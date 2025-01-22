@@ -149,7 +149,11 @@ public:
 	virtual void SetInitialPosition(ACharacter* C) override;
 
 	/** Called before ClientUpdatePosition uses this SavedMove to make a predictive correction
-	 * <p> Call Context: Called in ClientUpdatePositionAfterServerUpdate before MoveAutonomous */
+	 * <p> Call Context: Called in ClientUpdatePositionAfterServerUpdate before MoveAutonomous
+	 * <p> Note: Does not need to deal with variables that drive compressed flags cause MoveAutonomous already calls
+	 *			 UpdateFromCompressedFlags.
+	 * <p> Note 2: Should not restore any variable that is sent back with FCharacterMoveResponseDataContainer else it
+	 *			   will override the server correction, causing more desync */
 	virtual void PrepMoveFor(ACharacter* C) override;
 
 	/** Set the properties describing the final position, etc. of the moved pawn.
@@ -314,6 +318,7 @@ public:
 	virtual void SimulateMovement(float DeltaTime) override;
 	virtual bool CanAttemptJump() const override;
 	virtual bool DoJump(bool bReplayingMoves) override;
+	virtual bool CanCrouchInCurrentState() const override;
 protected:
 	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
 	

@@ -251,6 +251,13 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
 	
 	SetStamina(DefaultMaxStamina);
 	SetCharge(DefaultMaxCharge);
+
+	NavAgentProps.bCanCrouch = true;
+	bCanWalkOffLedgesWhenCrouching = true;
+	MaxWalkSpeed = 400.f;
+	MaxWalkSpeedCrouched = 200.f;
+
+	CrouchedHalfHeight = 60.f;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -376,14 +383,28 @@ void UXMUFoundationMovement::SimulateMovement(float DeltaTime)
 
 bool UXMUFoundationMovement::CanAttemptJump() const
 {
-	// like super but removed !bWantsToCrouch
+	// copied from Super
+	
 	return IsJumpAllowed() &&
-		   (IsMovingOnGround() || IsFalling());
+		   !bWantsToCrouch &&
+		   (IsMovingOnGround() || IsFalling()); // Falling included for double-jump and non-zero jump hold time, but validated by character.
 }
 
 bool UXMUFoundationMovement::DoJump(bool bReplayingMoves)
 {
 	return Super::DoJump(bReplayingMoves);
+}
+
+bool UXMUFoundationMovement::CanCrouchInCurrentState() const
+{
+	// copied from Super
+	
+	if (!CanEverCrouch())
+	{
+		return false;
+	}
+
+	return (IsFalling() || IsMovingOnGround()) && UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
 }
 
 void UXMUFoundationMovement::MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel)

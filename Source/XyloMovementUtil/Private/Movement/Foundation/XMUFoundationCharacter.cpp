@@ -55,13 +55,19 @@ void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 		{
 			bPressedJump = false;
 		}
+		else
+		{
+			UnCrouch(false);
+			FoundationMovement->UnCrouch(false);
+		}
 	}
 	Super::CheckJumpInput(DeltaTime);
 }
 
 bool AXMUFoundationCharacter::CanJumpInternal_Implementation() const
 {
-	return JumpIsAllowedInternal(); // removed !bIsCrouched
+	// copied from Super
+	return !bIsCrouched && JumpIsAllowedInternal();
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
