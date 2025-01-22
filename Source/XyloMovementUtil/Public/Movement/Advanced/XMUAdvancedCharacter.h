@@ -3,20 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Movement/Foundation/XMUFoundationCharacter.h"
-#include "XMUBaseCharacter.generated.h"
+#include "Movement/Base/XMUBaseCharacter.h"
+#include "XMUAdvancedCharacter.generated.h"
 
-class UXMUBaseMovement;
+class UXMUAdvancedMovement;
 /**
  * 
  */
 UCLASS()
-class XYLOMOVEMENTUTIL_API AXMUBaseCharacter : public AXMUFoundationCharacter
+class XYLOMOVEMENTUTIL_API AXMUAdvancedCharacter : public AXMUBaseCharacter
 {
 	GENERATED_BODY()
 
 public:
-	AXMUBaseCharacter(const FObjectInitializer& ObjectInitializer);
+	AXMUAdvancedCharacter(const FObjectInitializer& ObjectInitializer);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -27,13 +27,13 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
-	 * AXMUBaseCharacter
+	 * AXMUAdvancedCharacter
 	 */
 
 public:
-	UXMUBaseMovement* GetBaseMovement() const { return BaseMovement; }
+	UXMUAdvancedMovement* GetAdvancedMovement() const { return AdvancedMovement; }
 private:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(Category=Character, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
-	TObjectPtr<UXMUBaseMovement> BaseMovement;
+	TObjectPtr<UXMUAdvancedMovement> AdvancedMovement;
 };

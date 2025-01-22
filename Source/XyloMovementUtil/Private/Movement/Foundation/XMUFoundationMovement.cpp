@@ -368,8 +368,11 @@ void UXMUFoundationMovement::UpdateCharacterStateAfterMovement(float DeltaSecond
 
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
+		// if it has AnimRootMotionTransition montage and we have a RootMotionMontageInstance, check if they are different
+		const bool bHasAnimRootMotionMontage = AnimRootMotionTransition.Montage.Get();
 		FAnimMontageInstance* RootMotionMontageInstance = GetCharacterOwner()->GetRootMotionAnimMontageInstance();
-		const bool bMontageChanged = !RootMotionMontageInstance || AnimRootMotionTransition.Montage != RootMotionMontageInstance->Montage;
+		const bool bMontageChanged = (bHasAnimRootMotionMontage && RootMotionMontageInstance) ? AnimRootMotionTransition.Montage.Get() != RootMotionMontageInstance->Montage : false;
+		// if we had AnimRootMotion, but we don't anymore, or montage changed then set that we finished transition
 		if ((bHadAnimRootMotion && !HasAnimRootMotion()) || bMontageChanged)
 		{
 			AnimRootMotionTransition.bFinishedLastFrame = true;
