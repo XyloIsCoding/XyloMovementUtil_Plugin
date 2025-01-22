@@ -106,7 +106,6 @@ public:
 		, bAnimRootMotionTransitionFinishedLastFrame(0)
 		, RootMotionSourceTransitionName("")
 		, bRootMotionSourceTransitionFinishedLastFrame(0)
-		, bPressedJumpOverride(0)
 	{
 	}
 
@@ -122,8 +121,6 @@ public:
 	uint32 bAnimRootMotionTransitionFinishedLastFrame : 1;
 	FString RootMotionSourceTransitionName;
 	uint32 bRootMotionSourceTransitionFinishedLastFrame : 1;
-	
-	uint32 bPressedJumpOverride : 1;
 
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
@@ -166,7 +163,7 @@ public:
 	// Bit masks used by GetCompressedFlags() to encode movement information.
 	enum FoundationCompressedFlags
 	{
-		FLAG_Foundation_JumpOverride	= 0x01,
+		FLAG_Foundation_Custom_0		= 0x01,
 		FLAG_Foundation_Custom_1		= 0x02,
 		FLAG_Foundation_Custom_2		= 0x04,
 		FLAG_Foundation_Custom_3		= 0x08,
@@ -365,6 +362,7 @@ protected:
 	// Cached ground info for the character.  Do not access this directly! It's only updated when accessed via GetGroundInfo().
 	FXMUCharacterGroundInfo CachedGroundInfo;
 
+public:
 	virtual bool CheckOverrideJumpInput(float DeltaSeconds);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/

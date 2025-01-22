@@ -47,17 +47,16 @@ void AXMUFoundationCharacter::PreReplication(IRepChangedPropertyTracker& Changed
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Jump */
 
-void AXMUFoundationCharacter::Jump()
+void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 {
-	Super::Jump();
-	bPressedJump = false;
-	bPressedJumpOverride = true;
-}
-
-void AXMUFoundationCharacter::StopJumping()
-{
-	bPressedJumpOverride = false;
-	Super::StopJumping();
+	if (FoundationMovement && bPressedJump)
+	{
+		if (FoundationMovement->CheckOverrideJumpInput(DeltaTime))
+		{
+			bPressedJump = false;
+		}
+	}
+	Super::CheckJumpInput(DeltaTime);
 }
 
 bool AXMUFoundationCharacter::CanJumpInternal_Implementation() const

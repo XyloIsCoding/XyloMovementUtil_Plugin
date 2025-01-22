@@ -50,10 +50,7 @@ public:
 	/* Jump */
 
 public:
-	bool bPressedJumpOverride;
-public:
-	virtual void Jump() override;
-	virtual void StopJumping() override;
+	virtual void CheckJumpInput(float DeltaTime) override;
 protected:
 	virtual bool CanJumpInternal_Implementation() const override;
 

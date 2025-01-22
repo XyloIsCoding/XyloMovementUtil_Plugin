@@ -87,7 +87,7 @@ bool FXMUFoundationNetworkMoveData::Serialize(UCharacterMovementComponent& Chara
 {
 	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
     
-	SerializeOptionalValue<uint8>(Ar.IsSaving(), Ar, CompressedMoveFlags, 0);
+	SerializeOptionalValue<uint8>(Ar.IsSaving(), Ar, FoundationCompressedMoveFlags, 0);
 	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Stamina, 0.f);
 	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Charge, 0.f);
 	return !Ar.IsError();
@@ -111,8 +111,6 @@ void FXMUSavedMove_Character_Foundation::Clear()
 	bAnimRootMotionTransitionFinishedLastFrame = false;
 	RootMotionSourceTransitionName = "";
 	bRootMotionSourceTransitionFinishedLastFrame = false;
-
-	bPressedJumpOverride = false;
 }
 
 bool FXMUSavedMove_Character_Foundation::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
@@ -188,8 +186,6 @@ void FXMUSavedMove_Character_Foundation::SetMoveFor(ACharacter* C, float InDelta
 	bAnimRootMotionTransitionFinishedLastFrame = FoundationMovement->AnimRootMotionTransition.bFinishedLastFrame;
 	RootMotionSourceTransitionName = FoundationMovement->RootMotionSourceTransition.Name;
 	bRootMotionSourceTransitionFinishedLastFrame = FoundationMovement->RootMotionSourceTransition.bFinishedLastFrame;
-
-	bPressedJumpOverride = FoundationCharacter->bPressedJumpOverride;
 }
 
 void FXMUSavedMove_Character_Foundation::SetInitialPosition(ACharacter* C)
@@ -216,8 +212,6 @@ void FXMUSavedMove_Character_Foundation::PrepMoveFor(ACharacter* C)
 	FoundationMovement->AnimRootMotionTransition.bFinishedLastFrame = bAnimRootMotionTransitionFinishedLastFrame;
 	FoundationMovement->RootMotionSourceTransition.Name = RootMotionSourceTransitionName;
 	FoundationMovement->RootMotionSourceTransition.bFinishedLastFrame = bRootMotionSourceTransitionFinishedLastFrame;
-
-	FoundationCharacter->bPressedJumpOverride = bPressedJumpOverride;
 }
 
 void FXMUSavedMove_Character_Foundation::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
@@ -228,11 +222,6 @@ void FXMUSavedMove_Character_Foundation::PostUpdate(ACharacter* C, EPostUpdateMo
 uint8 FXMUSavedMove_Character_Foundation::GetFoundationCompressedFlags() const
 {
 	uint8 Result = 0;
-
-	if (bPressedJumpOverride)
-	{
-		Result |= FLAG_Foundation_JumpOverride;
-	}
 	
 	return Result;
 }
@@ -295,24 +284,6 @@ void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSecon
 
 	SetStamina(GetStamina() + StaminaRegenRate * DeltaSeconds);
 	SetCharge(GetCharge() + ChargeRegenRate * DeltaSeconds);
-	
-	// Proxies get replicated jump / ledge state.
-	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
-	{
-		if (FoundationCharacterOwner->bPressedJumpOverride)
-		{
-			if (CheckOverrideJumpInput(DeltaSeconds))
-			{
-				FoundationCharacterOwner->StopJumping();
-			}
-			else
-			{
-				FoundationCharacterOwner->bPressedJumpOverride = false;
-				CharacterOwner->bPressedJump = true;
-				CharacterOwner->CheckJumpInput(DeltaSeconds);
-			}
-		}
-	}
 
 	/*----------------------------------------------------------------------------------------------------------------*/
 	/* Post Anim Root Motion Transition */
@@ -405,7 +376,9 @@ void UXMUFoundationMovement::SimulateMovement(float DeltaTime)
 
 bool UXMUFoundationMovement::CanAttemptJump() const
 {
-	return Super::CanAttemptJump();
+	// like super but removed !bWantsToCrouch
+	return IsJumpAllowed() &&
+		   (IsMovingOnGround() || IsFalling());
 }
 
 bool UXMUFoundationMovement::DoJump(bool bReplayingMoves)
@@ -783,13 +756,11 @@ bool UXMUFoundationMovement::ClientUpdatePositionAfterServerUpdate()
 {
 	const bool bRealARMTFinishedLastFrame = AnimRootMotionTransition.bFinishedLastFrame;
 	const bool bRealRMSTFinishedLastFrame = RootMotionSourceTransition.bFinishedLastFrame;
-	const bool bPressedJumpOverride = FoundationCharacterOwner->bPressedJumpOverride;
 	
 	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
 
 	AnimRootMotionTransition.bFinishedLastFrame = bRealARMTFinishedLastFrame;
 	RootMotionSourceTransition.bFinishedLastFrame = bRealRMSTFinishedLastFrame;
-	FoundationCharacterOwner->bPressedJumpOverride = bPressedJumpOverride;
 
 	return bResult;
 }
@@ -798,8 +769,7 @@ void UXMUFoundationMovement::UpdateFromFoundationCompressedFlags()
 {
 	const FXMUFoundationNetworkMoveData* CurrentMoveData = static_cast<const FXMUFoundationNetworkMoveData*>(GetCurrentNetworkMoveData());
 	uint8 Flags = CurrentMoveData->FoundationCompressedMoveFlags;
-
-	FoundationCharacterOwner->bPressedJumpOverride = ((Flags & FXMUSavedMove_Character_Foundation::FLAG_Foundation_JumpOverride) != 0);
+	//...
 }
 
 FNetworkPredictionData_Client* UXMUFoundationMovement::GetPredictionData_Client() const
