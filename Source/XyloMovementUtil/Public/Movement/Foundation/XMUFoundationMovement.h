@@ -321,6 +321,7 @@ public:
 	virtual bool CanCrouchInCurrentState() const override;
 	virtual void Crouch(bool bClientSimulation) override;
 	virtual void UnCrouch(bool bClientSimulation) override;
+	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 protected:
 	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
 	
@@ -357,6 +358,11 @@ protected:
 	
 	/* Extension */
 
+protected:
+	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float MaxAirSpeed;
+
+	
 public:
 	void SetReplicatedAcceleration(const FVector& InAcceleration);
 protected:
