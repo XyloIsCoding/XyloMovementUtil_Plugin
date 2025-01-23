@@ -319,6 +319,8 @@ public:
 	virtual bool CanAttemptJump() const override;
 	virtual bool DoJump(bool bReplayingMoves) override;
 	virtual bool CanCrouchInCurrentState() const override;
+	virtual void Crouch(bool bClientSimulation) override;
+	virtual void UnCrouch(bool bClientSimulation) override;
 protected:
 	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
 	
@@ -341,7 +343,9 @@ public:
 
 protected:
 	virtual bool IsServer() const;
+	UFUNCTION(BlueprintCallable, Category = "Foundation Movement")
 	virtual float CapR() const;
+	UFUNCTION(BlueprintCallable, Category = "Foundation Movement")
 	virtual float CapHH() const;
 
 	virtual FVector GetControllerForwardVector() const;

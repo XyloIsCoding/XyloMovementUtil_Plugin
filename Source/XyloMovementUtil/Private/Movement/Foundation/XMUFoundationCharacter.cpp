@@ -58,7 +58,7 @@ void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 		else
 		{
 			UnCrouch(false);
-			FoundationMovement->UnCrouch(false);
+			if (bIsCrouched) FoundationMovement->UnCrouch(false);
 		}
 	}
 	Super::CheckJumpInput(DeltaTime);
@@ -68,6 +68,21 @@ bool AXMUFoundationCharacter::CanJumpInternal_Implementation() const
 {
 	// copied from Super
 	return !bIsCrouched && JumpIsAllowedInternal();
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Crouch */
+
+void AXMUFoundationCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+}
+
+void AXMUFoundationCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
