@@ -675,6 +675,8 @@ void UXMUFoundationMovement::UnCrouch(bool bClientSimulation)
 
 void UXMUFoundationMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
+	// copied from Super (except marked spots)
+	
 	// Do not update velocity when using root motion or when SimulatedProxy and not simulating root motion - SimulatedProxy are repped their Velocity
 	if (!HasValidData() || HasAnimRootMotion() || DeltaTime < MIN_TICK_TIME || (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy && !bWasSimulatingRootMotion))
 	{
@@ -896,6 +898,11 @@ const FXMUCharacterGroundInfo& UXMUFoundationMovement::GetGroundInfo()
 bool UXMUFoundationMovement::CheckOverrideJumpInput(float DeltaSeconds)
 {
 	return false;
+}
+
+void UXMUFoundationMovement::ResizeCapsule(float NewCapsuleHalfHeight, float NewCapsuleRadius, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation)
+{
+	// TODO: implement generic scaling function, that can scale radius and can keep as fixed point the bottom, center, or top.
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

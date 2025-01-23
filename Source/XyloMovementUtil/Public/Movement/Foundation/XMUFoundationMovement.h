@@ -266,6 +266,14 @@ public:
 	}
 };
 
+UENUM()
+enum class EXMUCapsuleScalingMode : uint8
+{
+	CSM_Top,		// Change size from the top, keeping the base in the same place
+	CSM_Center,		// Change size from the top and bottom, keeping the center in the same place
+	CSM_Bottom,		// Change size from the bottom, keeping the top in the same place
+};
+
 
 /**
  * FXMUCharacterGroundInfo
@@ -379,6 +387,9 @@ protected:
 
 public:
 	virtual bool CheckOverrideJumpInput(float DeltaSeconds);
+
+public:
+	virtual void ResizeCapsule(float NewCapsuleHalfHeight, float NewCapsuleRadius, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
