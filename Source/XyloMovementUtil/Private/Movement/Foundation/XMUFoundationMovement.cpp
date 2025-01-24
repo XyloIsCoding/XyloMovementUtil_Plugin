@@ -414,36 +414,15 @@ void UXMUFoundationMovement::SimulateMovement(float DeltaTime)
 	/*----------------------------------------------------------------------------------------------------------------*/
 }
 
-bool UXMUFoundationMovement::CanAttemptJump() const
-{
-	// copied from Super
-	
-	return IsJumpAllowed() &&
-		   !bWantsToCrouch &&
-		   (IsMovingOnGround() || IsFalling()); // Falling included for double-jump and non-zero jump hold time, but validated by character.
-}
-
 bool UXMUFoundationMovement::DoJump(bool bReplayingMoves)
 {
 	return Super::DoJump(bReplayingMoves);
 }
 
-bool UXMUFoundationMovement::CanCrouchInCurrentState() const
-{
-	// copied from Super
-	
-	if (!CanEverCrouch())
-	{
-		return false;
-	}
-
-	return (IsFalling() || IsMovingOnGround()) && UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
-}
-
 void UXMUFoundationMovement::Crouch(bool bClientSimulation)
 {
 	// copied from Super (except marked spots)
-	/* modified to avoid position change from mesh  */
+	// modified to avoid position change from mesh when crouching in air
 	
 	if (!HasValidData())
 	{
@@ -549,6 +528,8 @@ void UXMUFoundationMovement::Crouch(bool bClientSimulation)
 void UXMUFoundationMovement::UnCrouch(bool bClientSimulation)
 {
 	// copied from Super (except marked spots)
+	// modified to avoid position change from mesh when crouching in air
+	
 	
 	if (!HasValidData())
 	{
@@ -707,6 +688,7 @@ void UXMUFoundationMovement::UnCrouch(bool bClientSimulation)
 void UXMUFoundationMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
 	// copied from Super (except marked spots)
+	// changed to add Titanfall-like air strafing
 	
 	// Do not update velocity when using root motion or when SimulatedProxy and not simulating root motion - SimulatedProxy are repped their Velocity
 	if (!HasValidData() || HasAnimRootMotion() || DeltaTime < MIN_TICK_TIME || (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy && !bWasSimulatingRootMotion))

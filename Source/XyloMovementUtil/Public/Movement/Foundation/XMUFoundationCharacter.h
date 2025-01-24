@@ -53,8 +53,8 @@ public:
 	virtual void CheckJumpInput(float DeltaTime) override;
 protected:
 	virtual bool CanJumpInternal_Implementation() const override;
-	// Virtual version of JumpIsAllowedInternal
-	virtual bool JumpIsAllowedInternal() const;
+	/** Virtual version of JumpIsAllowedInternal */ 
+	virtual bool JumpIsAllowed() const;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 

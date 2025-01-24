@@ -335,9 +335,7 @@ public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 	virtual void SimulateMovement(float DeltaTime) override;
-	virtual bool CanAttemptJump() const override;
 	virtual bool DoJump(bool bReplayingMoves) override;
-	virtual bool CanCrouchInCurrentState() const override;
 	virtual void Crouch(bool bClientSimulation) override;
 	virtual void UnCrouch(bool bClientSimulation) override;
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
