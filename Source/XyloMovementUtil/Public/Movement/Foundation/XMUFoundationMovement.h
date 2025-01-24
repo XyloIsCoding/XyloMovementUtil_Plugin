@@ -28,6 +28,9 @@ struct XYLOMOVEMENTUTIL_API FXMUFoundationMoveResponseDataContainer : FCharacter
 	bool bStaminaDrained;
 	float Charge;
 	bool bChargeDrained;
+	
+	float CoyoteTimeDuration;
+	bool bCoyoteTimeDurationDrained;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,6 +47,7 @@ public:
 		: FoundationCompressedMoveFlags(0)
 		, Stamina(0)
 		, Charge(0)
+		, CoyoteTimeDuration(0)
 	{
 	}
 
@@ -60,9 +64,11 @@ public:
 	 */
 
 	uint8 FoundationCompressedMoveFlags; // generated using FXMUSavedMove_Character_Foundation::GetFoundationCompressedFlags
+
 	float Stamina;
 	float Charge;
 	
+	float CoyoteTimeDuration;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,6 +108,8 @@ public:
 		, bStaminaDrained(0)
 		, Charge(0)
 		, bChargeDrained(0)
+		, CoyoteTimeDuration(0)
+		, bCoyoteTimeDurationDrained(0)
 		, AnimRootMotionTransitionName("")
 		, bAnimRootMotionTransitionFinishedLastFrame(0)
 		, RootMotionSourceTransitionName("")
@@ -116,6 +124,9 @@ public:
 	uint32 bStaminaDrained : 1;
 	float Charge;
 	uint32 bChargeDrained : 1;
+	
+	float CoyoteTimeDuration;
+	uint32 bCoyoteTimeDurationDrained : 1;
 
 	FString AnimRootMotionTransitionName;
 	uint32 bAnimRootMotionTransitionFinishedLastFrame : 1;
@@ -332,6 +343,7 @@ public:
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 protected:
 	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
+	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -369,7 +381,6 @@ protected:
 protected:
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxAirSpeed;
-
 	
 public:
 	void SetReplicatedAcceleration(const FVector& InAcceleration);
@@ -415,6 +426,40 @@ protected:
 	/** Override to run logic after playing a root motion source transition */
 	virtual void PostRootMotionSourceTransition(FString TransitionName);
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Coyote Time */
+
+public:
+	UFUNCTION(BlueprintCallable)
+	float GetCoyoteTimeDuration() const { return CoyoteTimeDuration; }
+	UFUNCTION(BlueprintCallable)
+	float GetMaxCoyoteTimeDuration() const { return MaxCoyoteTimeDuration; }
+	bool IsCoyoteTimeDurationDrained() const { return bCoyoteTimeDurationDrained; }
+	void SetCoyoteTimeDuration(float NewCoyoteTimeDuration);
+	void SetMaxCoyoteTimeDuration(float NewMaxCoyoteTimeDuration);
+	void SetCoyoteTimeDurationDrained(bool bNewValue);
+	void DebugCoyoteTimeDuration() const;
+protected:
+	virtual void OnCoyoteTimeDurationChanged(float PrevValue, float NewValue);
+
+	virtual void OnMaxCoyoteTimeDurationChanged(float PrevValue, float NewValue) {}
+	virtual void OnCoyoteTimeDurationDrained() {}
+	virtual void OnCoyoteTimeDurationDrainRecovered() {}
+protected:
+	/** THIS SHOULD ONLY BE MODIFIED IN DERIVED CLASSES FROM OnCoyoteTimeDurationChanged AND NOWHERE ELSE */
+	UPROPERTY()
+	float CoyoteTimeDuration;
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "CoyoteTimeDuration")
+	float MaxCoyoteTimeDuration;
+	UPROPERTY()
+	bool bCoyoteTimeDurationDrained;
+	/** Maximum CoyoteTimeDuration difference that is allowed between client and server before a correction occurs. */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkCoyoteTimeDurationCorrectionThreshold;
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
 /*--------------------------------------------------------------------------------------------------------------------*/

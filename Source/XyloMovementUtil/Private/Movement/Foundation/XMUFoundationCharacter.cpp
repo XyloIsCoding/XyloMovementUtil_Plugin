@@ -61,13 +61,82 @@ void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 			if (bIsCrouched) FoundationMovement->UnCrouch(false);
 		}
 	}
-	Super::CheckJumpInput(DeltaTime);
+
+
+	// copied from Super except marked spots
+
+	JumpCurrentCountPreJump = JumpCurrentCount;
+
+	if (GetFoundationMovement())
+	{
+		if (bPressedJump)
+		{
+			// If this is the first jump and we're already falling,
+			// then increment the JumpCount to compensate.
+			const bool bFirstJump = JumpCurrentCount == 0;
+			if (bFirstJump && GetCharacterMovement()->IsFalling() && GetFoundationMovement()->IsCoyoteTimeDurationDrained()) // XMU Change: added coyote time duration check
+			{
+				JumpCurrentCount++;
+			}
+
+			const bool bDidJump = CanJump() && GetCharacterMovement()->DoJump(bClientUpdating);
+			if (bDidJump)
+			{
+				// Transition from not (actively) jumping to jumping.
+				if (!bWasJumping)
+				{
+					JumpCurrentCount++;
+					JumpForceTimeRemaining = GetJumpMaxHoldTime();
+					OnJumped();
+				}
+			}
+
+			bWasJumping = bDidJump;
+		}
+	}
 }
 
 bool AXMUFoundationCharacter::CanJumpInternal_Implementation() const
 {
-	// copied from Super
-	return !bIsCrouched && JumpIsAllowedInternal();
+	return !bIsCrouched && JumpIsAllowedInternal(); // XMU Change: changed JumpIsAllowedInternal in JumpIsAllowedInternalVirtual
+}
+
+bool AXMUFoundationCharacter::JumpIsAllowedInternal() const
+{
+	// copied from Super except marked spots
+	
+	// Ensure that the CharacterMovement state is valid
+	bool bJumpIsAllowed = GetCharacterMovement()->CanAttemptJump();
+
+	if (bJumpIsAllowed)
+	{
+		// Ensure JumpHoldTime and JumpCount are valid.
+		if (!bWasJumping || GetJumpMaxHoldTime() <= 0.0f)
+		{
+			// If our first jump is in air we check if the incremented JumpCurrentCount is less then the max value
+			// cause it counts as double jump
+			// since we added coyote time, we also check that we are outside the coyote time duration
+			if (JumpCurrentCount == 0 && GetCharacterMovement()->IsFalling() && GetFoundationMovement()->IsCoyoteTimeDurationDrained()) // XMU Change: added coyote time duration check
+			{
+				bJumpIsAllowed = JumpCurrentCount + 1 < JumpMaxCount;
+			}
+			else
+			{
+				bJumpIsAllowed = JumpCurrentCount < JumpMaxCount;
+			}
+		}
+		else
+		{
+			// Only consider JumpKeyHoldTime as long as:
+			// A) The jump limit hasn't been met OR
+			// B) The jump limit has been met AND we were already jumping
+			const bool bJumpKeyHeld = (bPressedJump && JumpKeyHoldTime < GetJumpMaxHoldTime());
+			bJumpIsAllowed = bJumpKeyHeld &&
+				((JumpCurrentCount < JumpMaxCount) || (bWasJumping && JumpCurrentCount == JumpMaxCount));
+		}
+	}
+
+	return bJumpIsAllowed;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

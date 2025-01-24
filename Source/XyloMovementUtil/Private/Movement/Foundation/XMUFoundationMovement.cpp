@@ -45,6 +45,9 @@ void FXMUFoundationMoveResponseDataContainer::ServerFillResponseData(
 	bStaminaDrained = MoveComp->IsStaminaDrained();
 	Charge = MoveComp->GetCharge();
 	bChargeDrained = MoveComp->IsChargeDrained();
+
+	CoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
+	bCoyoteTimeDurationDrained = MoveComp->IsCoyoteTimeDurationDrained();
 }
 
 bool FXMUFoundationMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -61,6 +64,9 @@ bool FXMUFoundationMoveResponseDataContainer::Serialize(UCharacterMovementCompon
 		Ar << bStaminaDrained;
 		Ar << Charge;
 		Ar << bChargeDrained;
+		
+		Ar << CoyoteTimeDuration;
+		Ar << bCoyoteTimeDurationDrained;
 	}
 
 	return !Ar.IsError();
@@ -78,8 +84,11 @@ void FXMUFoundationNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_C
 	const FXMUSavedMove_Character_Foundation FoundationClientMove = static_cast<const FXMUSavedMove_Character_Foundation&>(ClientMove);
 	
 	FoundationCompressedMoveFlags = FoundationClientMove.GetFoundationCompressedFlags();
+	
 	Stamina = FoundationClientMove.Stamina;
 	Charge = FoundationClientMove.Charge;
+
+	CoyoteTimeDuration = FoundationClientMove.CoyoteTimeDuration;
 }
 
 bool FXMUFoundationNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -88,8 +97,12 @@ bool FXMUFoundationNetworkMoveData::Serialize(UCharacterMovementComponent& Chara
 	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
     
 	SerializeOptionalValue<uint8>(Ar.IsSaving(), Ar, FoundationCompressedMoveFlags, 0);
+	
 	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Stamina, 0.f);
 	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Charge, 0.f);
+
+	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, CoyoteTimeDuration, 0.f);
+	
 	return !Ar.IsError();
 }
 
@@ -106,6 +119,9 @@ void FXMUSavedMove_Character_Foundation::Clear()
 	bStaminaDrained = false;
 	Charge = 0.f;
 	bChargeDrained = false;
+
+	CoyoteTimeDuration = 0.f;
+	bCoyoteTimeDurationDrained = false;
 
 	AnimRootMotionTransitionName = "";
 	bAnimRootMotionTransitionFinishedLastFrame = false;
@@ -136,6 +152,11 @@ bool FXMUSavedMove_Character_Foundation::CanCombineWith(const FSavedMovePtr& New
 	}
 
 	if (bChargeDrained != NewFoundationMove->bChargeDrained)
+	{
+		return false;
+	}
+
+	if (bCoyoteTimeDurationDrained != NewFoundationMove->bCoyoteTimeDurationDrained)
 	{
 		return false;
 	}
@@ -172,6 +193,9 @@ void FXMUSavedMove_Character_Foundation::CombineWith(const FSavedMove_Character*
 		MoveComp->SetStaminaDrained(OldFoundationMove->bStaminaDrained);
 		MoveComp->SetCharge(OldFoundationMove->Charge);
 		MoveComp->SetChargeDrained(OldFoundationMove->bChargeDrained);
+
+		MoveComp->SetCoyoteTimeDuration(OldFoundationMove->CoyoteTimeDuration);
+		MoveComp->SetCoyoteTimeDurationDrained(OldFoundationMove->bCoyoteTimeDurationDrained);
 	}
 }
 
@@ -198,6 +222,9 @@ void FXMUSavedMove_Character_Foundation::SetInitialPosition(ACharacter* C)
 		bStaminaDrained = MoveComp->IsStaminaDrained();
 		Charge = MoveComp->GetCharge();
 		bChargeDrained = MoveComp->IsChargeDrained();
+
+		CoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
+		bCoyoteTimeDurationDrained = MoveComp->IsCoyoteTimeDurationDrained();
 	}
 }
 
@@ -248,9 +275,11 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
 
 	NetworkStaminaCorrectionThreshold = 2.f;
 	NetworkChargeCorrectionThreshold = 2.f;
-	
 	SetStamina(DefaultMaxStamina);
 	SetCharge(DefaultMaxCharge);
+
+	NetworkCoyoteTimeDurationCorrectionThreshold = 0.1f;
+	SetMaxCoyoteTimeDuration(0.25f);
 
 	NavAgentProps.bCanCrouch = true;
 	bCanWalkOffLedgesWhenCrouching = true;
@@ -289,6 +318,8 @@ void UXMUFoundationMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComp
 
 void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
+	SetCoyoteTimeDuration(GetCoyoteTimeDuration() - DeltaSeconds);
+	
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 
 	SetStamina(GetStamina() + StaminaRegenRate * DeltaSeconds);
@@ -797,6 +828,16 @@ void UXMUFoundationMovement::MoveAutonomous(float ClientTimeStamp, float DeltaTi
 	Super::MoveAutonomous(ClientTimeStamp, DeltaTime, CompressedFlags, NewAccel);
 }
 
+void UXMUFoundationMovement::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+	
+	if (MovementMode == MOVE_Falling && PreviousMovementMode != MOVE_Falling)
+	{
+		SetCoyoteTimeDuration(MaxCoyoteTimeDuration);
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -921,6 +962,94 @@ void UXMUFoundationMovement::PostAnimRootMotionTransition(FString TransitionName
 
 void UXMUFoundationMovement::PostRootMotionSourceTransition(FString TransitionName)
 {
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Coyote Time */
+
+void UXMUFoundationMovement::SetCoyoteTimeDuration(float NewCoyoteTimeDuration)
+{
+	const float PrevCoyoteTimeDuration = CoyoteTimeDuration;
+	CoyoteTimeDuration = FMath::Clamp(NewCoyoteTimeDuration, 0.f, MaxCoyoteTimeDuration);
+	if (CharacterOwner != nullptr)
+	{
+		if (!FMath::IsNearlyEqual(PrevCoyoteTimeDuration, CoyoteTimeDuration))
+		{
+			OnCoyoteTimeDurationChanged(PrevCoyoteTimeDuration, CoyoteTimeDuration);
+		}
+	}
+}
+
+void UXMUFoundationMovement::SetMaxCoyoteTimeDuration(float NewMaxCoyoteTimeDuration)
+{
+	const float PrevMaxCoyoteTimeDuration = MaxCoyoteTimeDuration;
+	MaxCoyoteTimeDuration = FMath::Max(0.f, NewMaxCoyoteTimeDuration);
+	if (CharacterOwner != nullptr)
+	{
+		if (!FMath::IsNearlyEqual(PrevMaxCoyoteTimeDuration, MaxCoyoteTimeDuration))
+		{
+			OnMaxCoyoteTimeDurationChanged(PrevMaxCoyoteTimeDuration, MaxCoyoteTimeDuration);
+		}
+	}
+}
+
+void UXMUFoundationMovement::SetCoyoteTimeDurationDrained(bool bNewValue)
+{
+	const bool bWasCoyoteTimeDurationDrained = bCoyoteTimeDurationDrained;
+	bCoyoteTimeDurationDrained = bNewValue;
+	if (CharacterOwner != nullptr)
+	{
+		if (bWasCoyoteTimeDurationDrained != bCoyoteTimeDurationDrained)
+		{
+			if (bCoyoteTimeDurationDrained)
+			{
+				OnCoyoteTimeDurationDrained();
+			}
+			else
+			{
+				OnCoyoteTimeDurationDrainRecovered();
+			}
+		}
+	}
+}
+
+void UXMUFoundationMovement::DebugCoyoteTimeDuration() const
+{
+#if !UE_BUILD_SHIPPING
+	if (GEngine)
+	{
+		if (CharacterOwner->HasAuthority())
+		{
+			GEngine->AddOnScreenDebugMessage(38265, 1.f, FColor::Orange, FString::Printf(TEXT("[Authority] CoyoteTimeDuration %f    Drained %d"), GetCoyoteTimeDuration(), IsCoyoteTimeDurationDrained()));
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(38266, 1.f, FColor::Orange, FString::Printf(TEXT("[Autonomous] CoyoteTimeDuration %f    Drained %d"), GetCoyoteTimeDuration(), IsCoyoteTimeDurationDrained()));
+		}
+	}
+#endif
+}
+
+void UXMUFoundationMovement::OnCoyoteTimeDurationChanged(float PrevValue, float NewValue)
+{
+	if (FMath::IsNearlyZero(CoyoteTimeDuration))
+	{
+		CoyoteTimeDuration = 0.f;
+		if (!bCoyoteTimeDurationDrained)
+		{
+			SetCoyoteTimeDurationDrained(true);
+		}
+	}
+	else if (FMath::IsNearlyEqual(CoyoteTimeDuration, MaxCoyoteTimeDuration))
+	{
+		CoyoteTimeDuration = MaxCoyoteTimeDuration;
+		if (bCoyoteTimeDurationDrained)
+		{
+			SetCoyoteTimeDurationDrained(false);
+		}
+	}
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -1129,16 +1258,24 @@ bool UXMUFoundationMovement::ServerCheckClientError(float ClientTimeStamp, float
 	{
 		return true;
 	}
-    
-	// This will trigger a client correction if the Stamina value in the Client differs NetworkStaminaCorrectionThreshold (2.f default) units from the one in the server
-	// Desyncs can happen if we set the Stamina directly in Gameplay code (ie: GAS)
+	
 	const FXMUFoundationNetworkMoveData* CurrentMoveData = static_cast<const FXMUFoundationNetworkMoveData*>(GetCurrentNetworkMoveData());
 
+	// This will trigger a client correction if the Stamina value in the Client differs NetworkStaminaCorrectionThreshold (2.f default) units from the one in the server
+	// Desyncs can happen if we set the Stamina directly in Gameplay code (ie: GAS)
 	if (!FMath::IsNearlyEqual(CurrentMoveData->Stamina, Stamina, NetworkStaminaCorrectionThreshold))
 	{
 		return true;
 	}
+	// This will trigger a client correction if the Charge value in the Client differs NetworkChargeCorrectionThreshold (2.f default) units from the one in the server
+	// Desyncs can happen if we set the Charge directly in Gameplay code (ie: GAS)
 	if (!FMath::IsNearlyEqual(CurrentMoveData->Charge, Charge, NetworkChargeCorrectionThreshold))
+	{
+		return true;
+	}
+
+	// This will trigger a client correction if the CoyoteTimeDuration value in the Client differs NetworkCoyoteTimeDurationCorrectionThreshold (2.f default) units from the one in the server
+	if (!FMath::IsNearlyEqual(CurrentMoveData->CoyoteTimeDuration, CoyoteTimeDuration, NetworkCoyoteTimeDurationCorrectionThreshold))
 	{
 		return true;
 	}
@@ -1157,6 +1294,9 @@ void UXMUFoundationMovement::OnClientCorrectionReceived(FNetworkPredictionData_C
 	SetStaminaDrained(FoundationMoveResponse.bStaminaDrained);
 	SetCharge(FoundationMoveResponse.Charge);
 	SetChargeDrained(FoundationMoveResponse.bChargeDrained);
+
+	SetCoyoteTimeDuration(FoundationMoveResponse.CoyoteTimeDuration);
+	SetCoyoteTimeDurationDrained(FoundationMoveResponse.bCoyoteTimeDurationDrained);
 
 	Super::OnClientCorrectionReceived(ClientData, TimeStamp, NewLocation, NewVelocity, NewFoundation, NewFoundationBoneName,
 	bHasFoundation, bFoundationRelativePosition, ServerMovementMode, ServerGravityDirection);
