@@ -434,9 +434,12 @@ public:
 	float GetCoyoteTimeDuration() const { return CoyoteTimeDuration; }
 	UFUNCTION(BlueprintCallable)
 	float GetMaxCoyoteTimeDuration() const { return MaxCoyoteTimeDuration; }
+	UFUNCTION(BlueprintCallable)
+	float GetCoyoteTimeFullDurationVelocity() const { return CoyoteTimeFullDurationVelocity; }
 	bool IsCoyoteTimeDurationDrained() const { return bCoyoteTimeDurationDrained; }
 	void SetCoyoteTimeDuration(float NewCoyoteTimeDuration);
 	void SetMaxCoyoteTimeDuration(float NewMaxCoyoteTimeDuration);
+	void SetCoyoteTimeFullDurationVelocity(float NewCoyoteTimeVelocityScale);
 	void SetCoyoteTimeDurationDrained(bool bNewValue);
 	void DebugCoyoteTimeDuration() const;
 protected:
@@ -452,6 +455,8 @@ protected:
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "CoyoteTimeDuration")
 	float MaxCoyoteTimeDuration;
+	UPROPERTY(EditDefaultsOnly, Category = "CoyoteTimeDuration")
+	float CoyoteTimeFullDurationVelocity;
 	UPROPERTY()
 	bool bCoyoteTimeDurationDrained;
 	/** Maximum CoyoteTimeDuration difference that is allowed between client and server before a correction occurs. */

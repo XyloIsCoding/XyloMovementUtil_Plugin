@@ -244,6 +244,17 @@ void FXMUSavedMove_Character_Foundation::PrepMoveFor(ACharacter* C)
 void FXMUSavedMove_Character_Foundation::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 {
 	FSavedMove_Character::PostUpdate(C, PostUpdateMode);
+
+	if (const UXMUFoundationMovement* MoveComp = C ? Cast<UXMUFoundationMovement>(C->GetCharacterMovement()) : nullptr)
+	{
+		Stamina = MoveComp->GetStamina();
+		bStaminaDrained = MoveComp->IsStaminaDrained();
+		Charge = MoveComp->GetCharge();
+		bChargeDrained = MoveComp->IsChargeDrained();
+
+		CoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
+		bCoyoteTimeDurationDrained = MoveComp->IsCoyoteTimeDurationDrained();
+	}
 }
 
 uint8 FXMUSavedMove_Character_Foundation::GetFoundationCompressedFlags() const
@@ -273,21 +284,31 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
 	SetMoveResponseDataContainer(FoundationMoveResponseDataContainer);
 	SetNetworkMoveDataContainer(FoundationMoveDataContainer);
 
+	bUseFlatBaseForFloorChecks = true;
+	
+	GravityScale = 1.5f;
+	JumpZVelocity = 750.f;
+	
+	MaxWalkSpeed = 400.f;
+	BrakingFrictionFactor = 1.f;
+	
+	SetCrouchedHalfHeight(60.f);
+	NavAgentProps.bCanCrouch = true;
+	bCanWalkOffLedgesWhenCrouching = true;
+	MaxWalkSpeedCrouched = 200.f;
+	
+	
+	/* Custom Stuff */
+	
 	NetworkStaminaCorrectionThreshold = 2.f;
 	NetworkChargeCorrectionThreshold = 2.f;
 	SetStamina(DefaultMaxStamina);
 	SetCharge(DefaultMaxCharge);
 
 	NetworkCoyoteTimeDurationCorrectionThreshold = 0.1f;
-	SetMaxCoyoteTimeDuration(0.25f);
-
-	NavAgentProps.bCanCrouch = true;
-	bCanWalkOffLedgesWhenCrouching = true;
-	MaxWalkSpeed = 400.f;
-	MaxWalkSpeedCrouched = 200.f;
-
-	SetCrouchedHalfHeight(60.f);
-
+	SetMaxCoyoteTimeDuration(0.4f);
+	SetCoyoteTimeFullDurationVelocity(1200.f);
+	
 	MaxAirSpeed = 200.f;
 }
 
@@ -816,7 +837,7 @@ void UXMUFoundationMovement::OnMovementModeChanged(EMovementMode PreviousMovemen
 	
 	if (MovementMode == MOVE_Falling && PreviousMovementMode != MOVE_Falling)
 	{
-		SetCoyoteTimeDuration(MaxCoyoteTimeDuration);
+		SetCoyoteTimeDuration(MaxCoyoteTimeDuration * Velocity.Size2D() / GetCoyoteTimeFullDurationVelocity());
 	}
 }
 
@@ -977,6 +998,11 @@ void UXMUFoundationMovement::SetMaxCoyoteTimeDuration(float NewMaxCoyoteTimeDura
 	}
 }
 
+void UXMUFoundationMovement::SetCoyoteTimeFullDurationVelocity(float NewCoyoteTimeVelocityScale)
+{
+	CoyoteTimeFullDurationVelocity = FMath::Max(0.f, NewCoyoteTimeVelocityScale);
+}
+
 void UXMUFoundationMovement::SetCoyoteTimeDurationDrained(bool bNewValue)
 {
 	const bool bWasCoyoteTimeDurationDrained = bCoyoteTimeDurationDrained;
@@ -1024,13 +1050,9 @@ void UXMUFoundationMovement::OnCoyoteTimeDurationChanged(float PrevValue, float 
 			SetCoyoteTimeDurationDrained(true);
 		}
 	}
-	else if (FMath::IsNearlyEqual(CoyoteTimeDuration, MaxCoyoteTimeDuration))
+	else if (bCoyoteTimeDurationDrained)
 	{
-		CoyoteTimeDuration = MaxCoyoteTimeDuration;
-		if (bCoyoteTimeDurationDrained)
-		{
-			SetCoyoteTimeDurationDrained(false);
-		}
+		SetCoyoteTimeDurationDrained(false);
 	}
 }
 
