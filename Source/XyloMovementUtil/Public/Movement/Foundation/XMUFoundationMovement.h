@@ -30,7 +30,6 @@ struct XYLOMOVEMENTUTIL_API FXMUFoundationMoveResponseDataContainer : FCharacter
 	bool bChargeDrained;
 	
 	float CoyoteTimeDuration;
-	bool bCoyoteTimeDurationDrained;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -104,12 +103,14 @@ class XYLOMOVEMENTUTIL_API FXMUSavedMove_Character_Foundation : public FSavedMov
 	
 public:
 	FXMUSavedMove_Character_Foundation()
-		: Stamina(0)
+		: StartStamina(0)
+		, SavedStamina(0)
 		, bStaminaDrained(0)
-		, Charge(0)
+		, StartCharge(0)
+		, SavedCharge(0)
 		, bChargeDrained(0)
-		, CoyoteTimeDuration(0)
-		, bCoyoteTimeDurationDrained(0)
+		, StartCoyoteTimeDuration(0)
+		, SavedCoyoteTimeDuration(0)
 		, AnimRootMotionTransitionName("")
 		, bAnimRootMotionTransitionFinishedLastFrame(0)
 		, RootMotionSourceTransitionName("")
@@ -120,13 +121,15 @@ public:
 	virtual ~FXMUSavedMove_Character_Foundation() override
 	{}
 	
-	float Stamina;
+	float StartStamina;
+	float SavedStamina;
 	uint32 bStaminaDrained : 1;
-	float Charge;
+	float StartCharge;
+	float SavedCharge;
 	uint32 bChargeDrained : 1;
 	
-	float CoyoteTimeDuration;
-	uint32 bCoyoteTimeDurationDrained : 1;
+	float StartCoyoteTimeDuration;
+	float SavedCoyoteTimeDuration;
 
 	FString AnimRootMotionTransitionName;
 	uint32 bAnimRootMotionTransitionFinishedLastFrame : 1;
@@ -481,18 +484,15 @@ public:
 	float GetMaxCoyoteTimeDuration() const { return MaxCoyoteTimeDuration; }
 	UFUNCTION(BlueprintCallable)
 	float GetCoyoteTimeFullDurationVelocity() const { return CoyoteTimeFullDurationVelocity; }
-	bool IsCoyoteTimeDurationDrained() const { return bCoyoteTimeDurationDrained; }
+	bool IsCoyoteTimeDurationDrained() const { return CoyoteTimeDuration == 0.f; }
 	void SetCoyoteTimeDuration(float NewCoyoteTimeDuration);
 	void SetMaxCoyoteTimeDuration(float NewMaxCoyoteTimeDuration);
 	void SetCoyoteTimeFullDurationVelocity(float NewCoyoteTimeVelocityScale);
-	void SetCoyoteTimeDurationDrained(bool bNewValue);
 	void DebugCoyoteTimeDuration() const;
 protected:
 	virtual void OnCoyoteTimeDurationChanged(float PrevValue, float NewValue);
 
 	virtual void OnMaxCoyoteTimeDurationChanged(float PrevValue, float NewValue) {}
-	virtual void OnCoyoteTimeDurationDrained() {}
-	virtual void OnCoyoteTimeDurationDrainRecovered() {}
 protected:
 	/** THIS SHOULD ONLY BE MODIFIED IN DERIVED CLASSES FROM OnCoyoteTimeDurationChanged AND NOWHERE ELSE */
 	UPROPERTY()
@@ -502,8 +502,6 @@ private:
 	float MaxCoyoteTimeDuration;
 	UPROPERTY(EditDefaultsOnly, Category = "CoyoteTimeDuration")
 	float CoyoteTimeFullDurationVelocity;
-	UPROPERTY()
-	bool bCoyoteTimeDurationDrained;
 	/** Maximum CoyoteTimeDuration difference that is allowed between client and server before a correction occurs. */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
 	float NetworkCoyoteTimeDurationCorrectionThreshold;

@@ -50,7 +50,6 @@ void FXMUFoundationMoveResponseDataContainer::ServerFillResponseData(
 	bChargeDrained = MoveComp->IsChargeDrained();
 
 	CoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
-	bCoyoteTimeDurationDrained = MoveComp->IsCoyoteTimeDurationDrained();
 }
 
 bool FXMUFoundationMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -69,7 +68,6 @@ bool FXMUFoundationMoveResponseDataContainer::Serialize(UCharacterMovementCompon
 		Ar << bChargeDrained;
 		
 		Ar << CoyoteTimeDuration;
-		Ar << bCoyoteTimeDurationDrained;
 	}
 
 	return !Ar.IsError();
@@ -88,10 +86,10 @@ void FXMUFoundationNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_C
 	
 	FoundationCompressedMoveFlags = FoundationClientMove.GetFoundationCompressedFlags();
 	
-	Stamina = FoundationClientMove.Stamina;
-	Charge = FoundationClientMove.Charge;
+	Stamina = FoundationClientMove.SavedStamina;
+	Charge = FoundationClientMove.SavedCharge;
 
-	CoyoteTimeDuration = FoundationClientMove.CoyoteTimeDuration;
+	CoyoteTimeDuration = FoundationClientMove.SavedCoyoteTimeDuration;
 }
 
 bool FXMUFoundationNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -118,13 +116,15 @@ void FXMUSavedMove_Character_Foundation::Clear()
 {
 	Super::Clear();
 	
-	Stamina = 0.f;
+	StartStamina = 0.f;
+	SavedStamina = 0.f;
 	bStaminaDrained = false;
-	Charge = 0.f;
+	StartCharge = 0.f;
+	SavedCharge = 0.f;
 	bChargeDrained = false;
 
-	CoyoteTimeDuration = 0.f;
-	bCoyoteTimeDurationDrained = false;
+	StartCoyoteTimeDuration = 0.f;
+	SavedCoyoteTimeDuration = 0.f;
 
 	AnimRootMotionTransitionName = "";
 	bAnimRootMotionTransitionFinishedLastFrame = false;
@@ -159,7 +159,7 @@ bool FXMUSavedMove_Character_Foundation::CanCombineWith(const FSavedMovePtr& New
 		return false;
 	}
 
-	if (bCoyoteTimeDurationDrained != NewFoundationMove->bCoyoteTimeDurationDrained)
+	if ((StartCoyoteTimeDuration == 0.f) != (NewFoundationMove->StartCoyoteTimeDuration == 0.f))
 	{
 		return false;
 	}
@@ -192,13 +192,12 @@ void FXMUSavedMove_Character_Foundation::CombineWith(const FSavedMove_Character*
 
 	if (UXMUFoundationMovement* MoveComp = C ? Cast<UXMUFoundationMovement>(C->GetCharacterMovement()) : nullptr)
 	{
-		MoveComp->SetStamina(OldFoundationMove->Stamina);
+		MoveComp->SetStamina(OldFoundationMove->StartStamina);
 		MoveComp->SetStaminaDrained(OldFoundationMove->bStaminaDrained);
-		MoveComp->SetCharge(OldFoundationMove->Charge);
+		MoveComp->SetCharge(OldFoundationMove->StartCharge);
 		MoveComp->SetChargeDrained(OldFoundationMove->bChargeDrained);
 
-		MoveComp->SetCoyoteTimeDuration(OldFoundationMove->CoyoteTimeDuration);
-		MoveComp->SetCoyoteTimeDurationDrained(OldFoundationMove->bCoyoteTimeDurationDrained);
+		MoveComp->SetCoyoteTimeDuration(OldFoundationMove->StartCoyoteTimeDuration);
 	}
 }
 
@@ -221,13 +220,12 @@ void FXMUSavedMove_Character_Foundation::SetInitialPosition(ACharacter* C)
 
 	if (const UXMUFoundationMovement* MoveComp = C ? Cast<UXMUFoundationMovement>(C->GetCharacterMovement()) : nullptr)
 	{
-		Stamina = MoveComp->GetStamina();
+		StartStamina = MoveComp->GetStamina();
 		bStaminaDrained = MoveComp->IsStaminaDrained();
-		Charge = MoveComp->GetCharge();
+		StartCharge = MoveComp->GetCharge();
 		bChargeDrained = MoveComp->IsChargeDrained();
 
-		CoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
-		bCoyoteTimeDurationDrained = MoveComp->IsCoyoteTimeDurationDrained();
+		StartCoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
 	}
 }
 
@@ -250,13 +248,10 @@ void FXMUSavedMove_Character_Foundation::PostUpdate(ACharacter* C, EPostUpdateMo
 
 	if (const UXMUFoundationMovement* MoveComp = C ? Cast<UXMUFoundationMovement>(C->GetCharacterMovement()) : nullptr)
 	{
-		Stamina = MoveComp->GetStamina();
-		bStaminaDrained = MoveComp->IsStaminaDrained();
-		Charge = MoveComp->GetCharge();
-		bChargeDrained = MoveComp->IsChargeDrained();
+		SavedStamina = MoveComp->GetStamina();
+		SavedCharge = MoveComp->GetCharge();
 
-		CoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
-		bCoyoteTimeDurationDrained = MoveComp->IsCoyoteTimeDurationDrained();
+		SavedCoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
 	}
 }
 
@@ -1051,26 +1046,6 @@ void UXMUFoundationMovement::SetCoyoteTimeFullDurationVelocity(float NewCoyoteTi
 	CoyoteTimeFullDurationVelocity = FMath::Max(0.f, NewCoyoteTimeVelocityScale);
 }
 
-void UXMUFoundationMovement::SetCoyoteTimeDurationDrained(bool bNewValue)
-{
-	const bool bWasCoyoteTimeDurationDrained = bCoyoteTimeDurationDrained;
-	bCoyoteTimeDurationDrained = bNewValue;
-	if (CharacterOwner != nullptr)
-	{
-		if (bWasCoyoteTimeDurationDrained != bCoyoteTimeDurationDrained)
-		{
-			if (bCoyoteTimeDurationDrained)
-			{
-				OnCoyoteTimeDurationDrained();
-			}
-			else
-			{
-				OnCoyoteTimeDurationDrainRecovered();
-			}
-		}
-	}
-}
-
 void UXMUFoundationMovement::DebugCoyoteTimeDuration() const
 {
 #if !UE_BUILD_SHIPPING
@@ -1090,18 +1065,6 @@ void UXMUFoundationMovement::DebugCoyoteTimeDuration() const
 
 void UXMUFoundationMovement::OnCoyoteTimeDurationChanged(float PrevValue, float NewValue)
 {
-	if (FMath::IsNearlyZero(CoyoteTimeDuration))
-	{
-		CoyoteTimeDuration = 0.f;
-		if (!bCoyoteTimeDurationDrained)
-		{
-			SetCoyoteTimeDurationDrained(true);
-		}
-	}
-	else if (bCoyoteTimeDurationDrained)
-	{
-		SetCoyoteTimeDurationDrained(false);
-	}
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -1348,7 +1311,6 @@ void UXMUFoundationMovement::OnClientCorrectionReceived(FNetworkPredictionData_C
 	SetChargeDrained(FoundationMoveResponse.bChargeDrained);
 
 	SetCoyoteTimeDuration(FoundationMoveResponse.CoyoteTimeDuration);
-	SetCoyoteTimeDurationDrained(FoundationMoveResponse.bCoyoteTimeDurationDrained);
 
 	Super::OnClientCorrectionReceived(ClientData, TimeStamp, NewLocation, NewVelocity, NewFoundation, NewFoundationBoneName,
 	bHasFoundation, bFoundationRelativePosition, ServerMovementMode, ServerGravityDirection);
