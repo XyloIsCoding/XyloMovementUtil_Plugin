@@ -311,6 +311,27 @@ struct FXMUCharacterGroundInfo
 };
 
 
+
+USTRUCT(BlueprintType)
+struct FXMUResizeCapsuleHHResult
+{
+	GENERATED_BODY()
+
+	FXMUResizeCapsuleHHResult()
+		: HalfHeightAdjust(0.f)
+		, ScaledHalfHeightAdjust(0.f)
+		, Success(false)
+	{}
+
+	UPROPERTY(BlueprintReadOnly)
+	float HalfHeightAdjust;
+	UPROPERTY(BlueprintReadOnly)
+	float ScaledHalfHeightAdjust;
+	UPROPERTY(BlueprintReadOnly)
+	bool Success;
+};
+
+
 /**
  * 
  */
@@ -398,9 +419,10 @@ public:
 	virtual bool CheckOverrideJumpInput(float DeltaSeconds);
 
 public:
-	virtual void ResizeCapsule(float NewCapsuleHalfHeight, float NewCapsuleRadius, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation);	
-	virtual void IncreaseCapsuleHH(float NewCapsuleHalfHeight, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation);
-	virtual void DecreaseCapsuleHH(float NewCapsuleHalfHeight, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation);	
+	virtual void ResizeCapsuleHH(float NewCapsuleHalfHeight, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation, FXMUResizeCapsuleHHResult& Result);	
+protected:
+	virtual void IncreaseCapsuleHH(float ClampedNewHalfHeight, float ScaledHalfHeightAdjust, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation, FXMUResizeCapsuleHHResult& Result);
+	virtual void DecreaseCapsuleHH(float ClampedNewHalfHeight, float ScaledHalfHeightAdjust, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation, FXMUResizeCapsuleHHResult& Result);	
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
