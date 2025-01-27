@@ -398,7 +398,9 @@ public:
 	virtual bool CheckOverrideJumpInput(float DeltaSeconds);
 
 public:
-	virtual void ResizeCapsule(float NewCapsuleHalfHeight, float NewCapsuleRadius, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation);
+	virtual void ResizeCapsule(float NewCapsuleHalfHeight, float NewCapsuleRadius, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation);	
+	virtual void IncreaseCapsuleHH(float NewCapsuleHalfHeight, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation);
+	virtual void DecreaseCapsuleHH(float NewCapsuleHalfHeight, EXMUCapsuleScalingMode ScalingMode, bool bClientSimulation);	
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -424,6 +426,22 @@ protected:
 	/** Override to run logic after playing a root motion source transition */
 	virtual void PostRootMotionSourceTransition(FString TransitionName);
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Two Steps Crouch */
+
+public:
+	void SetCrouchProgress(float NewCrouchProgress);
+	float GetSetCrouchProgress() const { return CrouchProgress; }
+protected:
+	virtual void FinishCrouch(bool bClientSimulation);
+	virtual void FinishUnCrouch(bool bClientSimulation);
+private:
+	float CrouchProgress;
+	UPROPERTY(EditDefaultsOnly, Category = "Character Movement: Walking")
+	float CrouchTransitionTime;
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
 /*--------------------------------------------------------------------------------------------------------------------*/

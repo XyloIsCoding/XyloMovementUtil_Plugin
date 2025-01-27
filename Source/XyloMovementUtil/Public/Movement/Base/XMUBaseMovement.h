@@ -32,6 +32,10 @@ public:
 	 * UCharacterMovementComponent Interface
 	 */
 
+public:
+	virtual void Crouch(bool bClientSimulation) override;
+	virtual void UnCrouch(bool bClientSimulation) override;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
