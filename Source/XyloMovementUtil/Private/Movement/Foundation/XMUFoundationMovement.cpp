@@ -942,14 +942,77 @@ void UXMUFoundationMovement::PostRootMotionSourceTransition(FString TransitionNa
 
 void UXMUFoundationMovement::SetCrouchProgress(float NewCrouchProgress)
 {
+	CrouchProgress = FMath::Clamp(NewCrouchProgress, 0.f, CrouchTransitionTime);
+}
+
+void UXMUFoundationMovement::SetUnCrouchProgress(float NewUnCrouchProgress)
+{
+	UnCrouchProgress = FMath::Clamp(NewUnCrouchProgress, 0.f, CrouchTransitionTime);
+}
+
+void UXMUFoundationMovement::BeginCrouch(bool bClientSimulation)
+{
+	if (!bClientSimulation && !CanCrouchInCurrentState())
+	{
+		return;
+	}
+
+	SetCrouchProgress(0.f);
+	
+	if (!bClientSimulation)
+	{
+		CharacterOwner->bIsCrouched = true;
+	}
+	else
+	{
+		FinishCrouch(bClientSimulation);	
+	}
 }
 
 void UXMUFoundationMovement::FinishCrouch(bool bClientSimulation)
 {
+	EXMUCapsuleScalingMode ScalingMode = bCrouchMaintainsBaseLocation ? EXMUCapsuleScalingMode::CSM_Bottom : EXMUCapsuleScalingMode::CSM_Center;
+	FXMUResizeCapsuleHHResult Result;
+	ResizeCapsuleHH(GetCrouchedHalfHeight(), ScalingMode, bClientSimulation, Result);
+	
+	if (Result.Success || bClientSimulation)
+	{
+		CharacterOwner->OnStartCrouch( Result.HalfHeightAdjust, Result.ScaledHalfHeightAdjust);
+	}
+}
+
+void UXMUFoundationMovement::BeginUnCrouch(bool bClientSimulation)
+{
+	ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
+	EXMUCapsuleScalingMode ScalingMode = bCrouchMaintainsBaseLocation ? EXMUCapsuleScalingMode::CSM_Bottom : EXMUCapsuleScalingMode::CSM_Center;
+	FXMUResizeCapsuleHHResult Result;
+	ResizeCapsuleHH(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), ScalingMode, bClientSimulation, Result);
+	
+	if (Result.Success || bClientSimulation)
+	{
+		CharacterOwner->OnEndCrouch( Result.HalfHeightAdjust, Result.ScaledHalfHeightAdjust);
+	}
+
+	if (!bClientSimulation)
+	{
+		if (Result.Success)
+		{
+			SetUnCrouchProgress(0.f);
+		}
+	}
+	else
+	{
+		SetUnCrouchProgress(0.f);
+		FinishUnCrouch(bClientSimulation);
+	}
 }
 
 void UXMUFoundationMovement::FinishUnCrouch(bool bClientSimulation)
 {
+	if (!bClientSimulation)
+	{
+		CharacterOwner->bIsCrouched = false;
+	}
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

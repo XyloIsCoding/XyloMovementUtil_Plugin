@@ -455,12 +455,17 @@ protected:
 
 public:
 	void SetCrouchProgress(float NewCrouchProgress);
-	float GetSetCrouchProgress() const { return CrouchProgress; }
+	float GetCrouchProgress() const { return CrouchProgress; }
+	void SetUnCrouchProgress(float NewUnCrouchProgress);
+	float GetUnCrouchProgress() const { return UnCrouchProgress; }
 protected:
+	virtual void BeginCrouch(bool bClientSimulation);
 	virtual void FinishCrouch(bool bClientSimulation);
+	virtual void BeginUnCrouch(bool bClientSimulation);
 	virtual void FinishUnCrouch(bool bClientSimulation);
 private:
 	float CrouchProgress;
+	float UnCrouchProgress;
 	UPROPERTY(EditDefaultsOnly, Category = "Character Movement: Walking")
 	float CrouchTransitionTime;
 	
