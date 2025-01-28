@@ -111,6 +111,7 @@ public:
 		, bChargeDrained(0)
 		, StartCoyoteTimeDuration(0)
 		, SavedCoyoteTimeDuration(0)
+		, CrouchProgress(0)
 		, AnimRootMotionTransitionName("")
 		, bAnimRootMotionTransitionFinishedLastFrame(0)
 		, RootMotionSourceTransitionName("")
@@ -130,6 +131,8 @@ public:
 	
 	float StartCoyoteTimeDuration;
 	float SavedCoyoteTimeDuration;
+
+	float CrouchProgress;
 
 	FString AnimRootMotionTransitionName;
 	uint32 bAnimRootMotionTransitionFinishedLastFrame : 1;
@@ -459,16 +462,20 @@ protected:
 public:
 	void SetCrouchProgress(float NewCrouchProgress);
 	float GetCrouchProgress() const { return CrouchProgress; }
-	void SetUnCrouchProgress(float NewUnCrouchProgress);
-	float GetUnCrouchProgress() const { return UnCrouchProgress; }
-protected:
+	void SetCrouchTransitioning(bool NewValue);
+	bool GetCrouchTransitioning() const { return bCrouchTransitioning; }
+	void SetWaitingToCrouch(bool NewValue);
+	bool GetWaitingToCrouch() const { return bWaitingToCrouch; }
+public:
 	virtual void BeginCrouch(bool bClientSimulation);
-	virtual void FinishCrouch(bool bClientSimulation);
 	virtual void BeginUnCrouch(bool bClientSimulation);
+protected:
+	virtual void FinishCrouch(bool bClientSimulation);
 	virtual void FinishUnCrouch(bool bClientSimulation);
 private:
 	float CrouchProgress;
-	float UnCrouchProgress;
+	bool bCrouchTransitioning;
+	bool bWaitingToCrouch;
 	UPROPERTY(EditDefaultsOnly, Category = "Character Movement: Walking")
 	float CrouchTransitionTime;
 	
@@ -500,6 +507,7 @@ protected:
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "CoyoteTimeDuration")
 	float MaxCoyoteTimeDuration;
+	/** Velocity necessary to gain full coyote time duration */
 	UPROPERTY(EditDefaultsOnly, Category = "CoyoteTimeDuration")
 	float CoyoteTimeFullDurationVelocity;
 	/** Maximum CoyoteTimeDuration difference that is allowed between client and server before a correction occurs. */

@@ -154,6 +154,26 @@ void AXMUFoundationCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHa
 	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 }
 
+void AXMUFoundationCharacter::OnRep_IsCrouched()
+{
+	// copied from super but using deferred time crouch functions
+	
+	if (GetFoundationMovement())
+	{
+		if (bIsCrouched)
+		{
+			GetFoundationMovement()->bWantsToCrouch = true;
+			GetFoundationMovement()->BeginCrouch(true);
+		}
+		else
+		{
+			GetFoundationMovement()->bWantsToCrouch = false;
+			GetFoundationMovement()->BeginUnCrouch(true);
+		}
+		GetFoundationMovement()->bNetworkUpdateReceived = true;
+	}
+}
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

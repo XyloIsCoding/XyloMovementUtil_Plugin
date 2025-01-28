@@ -126,6 +126,8 @@ void FXMUSavedMove_Character_Foundation::Clear()
 	StartCoyoteTimeDuration = 0.f;
 	SavedCoyoteTimeDuration = 0.f;
 
+	CrouchProgress = 0.f;
+
 	AnimRootMotionTransitionName = "";
 	bAnimRootMotionTransitionFinishedLastFrame = false;
 	RootMotionSourceTransitionName = "";
@@ -198,6 +200,8 @@ void FXMUSavedMove_Character_Foundation::CombineWith(const FSavedMove_Character*
 		MoveComp->SetChargeDrained(OldFoundationMove->bChargeDrained);
 
 		MoveComp->SetCoyoteTimeDuration(OldFoundationMove->StartCoyoteTimeDuration);
+
+		MoveComp->SetCrouchProgress(OldFoundationMove->CrouchProgress);
 	}
 }
 
@@ -226,6 +230,8 @@ void FXMUSavedMove_Character_Foundation::SetInitialPosition(ACharacter* C)
 		bChargeDrained = MoveComp->IsChargeDrained();
 
 		StartCoyoteTimeDuration = MoveComp->GetCoyoteTimeDuration();
+
+		CrouchProgress = MoveComp->GetCrouchProgress();
 	}
 }
 
@@ -240,6 +246,8 @@ void FXMUSavedMove_Character_Foundation::PrepMoveFor(ACharacter* C)
 	FoundationMovement->AnimRootMotionTransition.bFinishedLastFrame = bAnimRootMotionTransitionFinishedLastFrame;
 	FoundationMovement->RootMotionSourceTransition.Name = RootMotionSourceTransitionName;
 	FoundationMovement->RootMotionSourceTransition.bFinishedLastFrame = bRootMotionSourceTransitionFinishedLastFrame;
+
+	FoundationMovement->SetCrouchProgress(CrouchProgress);
 }
 
 void FXMUSavedMove_Character_Foundation::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
@@ -337,13 +345,45 @@ void UXMUFoundationMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComp
 
 void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
-	SetCoyoteTimeDuration(GetCoyoteTimeDuration() - DeltaSeconds);
-	
-	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
-
 	SetStamina(GetStamina() + StaminaRegenRate * DeltaSeconds);
 	SetCharge(GetCharge() + ChargeRegenRate * DeltaSeconds);
+	
+	SetCoyoteTimeDuration(GetCoyoteTimeDuration() - DeltaSeconds);
+	
+	// Proxies get replicated crouch state.
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		// tick progress
+		SetCrouchProgress(GetCrouchProgress() + DeltaSeconds);
+		
+		// Check for a change in crouch state. Players toggle crouch by changing bWantsToCrouch.
+		const bool bIsCrouching = IsCrouching();
+		if (bIsCrouching && (!bWantsToCrouch || !CanCrouchInCurrentState()))
+		{
+			if (!(bCrouchTransitioning && !bWaitingToCrouch)) // do not begin uncrouch if we are already transitioning to uncrouch
+			{
+				BeginUnCrouch(false);
+			}
+		}
+		else if (!bIsCrouching && bWantsToCrouch && CanCrouchInCurrentState())
+		{
+			BeginCrouch(false);
+		}
 
+		// check if it needs to finish the crouch transition
+		if (bCrouchTransitioning && GetCrouchProgress() == CrouchTransitionTime)
+		{
+			if (bWaitingToCrouch)
+			{
+				FinishCrouch(false);
+			}
+			else
+			{
+				FinishUnCrouch(false);
+			}
+		}
+	}
+	
 	/*----------------------------------------------------------------------------------------------------------------*/
 	/* Post Anim Root Motion Transition */
 	
@@ -377,7 +417,15 @@ void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSecon
 
 void UXMUFoundationMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 {
-	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
+	// Proxies get replicated crouch state.
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		// Uncrouch if no longer allowed to be crouched
+		if (IsCrouching() && !CanCrouchInCurrentState())
+		{
+			BeginUnCrouch(false);
+		}
+	}
 
 	/*----------------------------------------------------------------------------------------------------------------*/
 	/* Track Root Motion Source End */
@@ -940,9 +988,14 @@ void UXMUFoundationMovement::SetCrouchProgress(float NewCrouchProgress)
 	CrouchProgress = FMath::Clamp(NewCrouchProgress, 0.f, CrouchTransitionTime);
 }
 
-void UXMUFoundationMovement::SetUnCrouchProgress(float NewUnCrouchProgress)
+void UXMUFoundationMovement::SetCrouchTransitioning(bool NewValue)
 {
-	UnCrouchProgress = FMath::Clamp(NewUnCrouchProgress, 0.f, CrouchTransitionTime);
+	bCrouchTransitioning = NewValue;
+}
+
+void UXMUFoundationMovement::SetWaitingToCrouch(bool NewValue)
+{
+	bWaitingToCrouch = NewValue;
 }
 
 void UXMUFoundationMovement::BeginCrouch(bool bClientSimulation)
@@ -956,23 +1009,13 @@ void UXMUFoundationMovement::BeginCrouch(bool bClientSimulation)
 	
 	if (!bClientSimulation)
 	{
+		SetCrouchTransitioning(true);
+		SetWaitingToCrouch(true);
 		CharacterOwner->bIsCrouched = true;
 	}
 	else
 	{
 		FinishCrouch(bClientSimulation);	
-	}
-}
-
-void UXMUFoundationMovement::FinishCrouch(bool bClientSimulation)
-{
-	EXMUCapsuleScalingMode ScalingMode = bCrouchMaintainsBaseLocation ? EXMUCapsuleScalingMode::CSM_Bottom : EXMUCapsuleScalingMode::CSM_Center;
-	FXMUResizeCapsuleHHResult Result;
-	ResizeCapsuleHH(GetCrouchedHalfHeight(), ScalingMode, bClientSimulation, Result);
-	
-	if (Result.Success || bClientSimulation)
-	{
-		CharacterOwner->OnStartCrouch( Result.HalfHeightAdjust, Result.ScaledHalfHeightAdjust);
 	}
 }
 
@@ -992,22 +1035,42 @@ void UXMUFoundationMovement::BeginUnCrouch(bool bClientSimulation)
 	{
 		if (Result.Success)
 		{
-			SetUnCrouchProgress(0.f);
+			SetCrouchProgress(0.f);
+			SetCrouchTransitioning(true);
+			SetWaitingToCrouch(false);
 		}
 	}
 	else
 	{
-		SetUnCrouchProgress(0.f);
+		SetCrouchProgress(0.f);
 		FinishUnCrouch(bClientSimulation);
 	}
+}
+
+void UXMUFoundationMovement::FinishCrouch(bool bClientSimulation)
+{
+	if (!bClientSimulation)
+	{
+		SetCrouchTransitioning(false);
+	}
+	
+	EXMUCapsuleScalingMode ScalingMode = bCrouchMaintainsBaseLocation ? EXMUCapsuleScalingMode::CSM_Bottom : EXMUCapsuleScalingMode::CSM_Center;
+	FXMUResizeCapsuleHHResult Result;
+	ResizeCapsuleHH(GetCrouchedHalfHeight(), ScalingMode, bClientSimulation, Result);
+
+	// no result checks needed because we are shrinking the capsule
+	CharacterOwner->OnStartCrouch( Result.HalfHeightAdjust, Result.ScaledHalfHeightAdjust);
+	UE_LOG(LogTemp, Warning, TEXT("finishing crouch"))
 }
 
 void UXMUFoundationMovement::FinishUnCrouch(bool bClientSimulation)
 {
 	if (!bClientSimulation)
 	{
+		SetCrouchTransitioning(false);
 		CharacterOwner->bIsCrouched = false;
 	}
+	UE_LOG(LogTemp, Warning, TEXT("finishing un-crouch"))
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

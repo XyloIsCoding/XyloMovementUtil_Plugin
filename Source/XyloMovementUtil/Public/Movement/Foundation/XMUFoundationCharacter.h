@@ -64,6 +64,7 @@ protected:
 public:
 	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+	virtual void OnRep_IsCrouched() override;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
