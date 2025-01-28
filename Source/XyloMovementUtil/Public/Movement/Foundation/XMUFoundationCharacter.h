@@ -92,9 +92,23 @@ private:
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_ReplicatedAcceleration)
 	FXMUReplicatedAcceleration ReplicatedAcceleration;
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Crouch */
+
+public:
+	/** ranges from 0 (when standing) to 1 (when fully crouched) */
+	UFUNCTION(BlueprintCallable)
+	float GetCrouchPercentage() const;
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Input */
+	
 protected:
 	virtual void Move(const FInputActionValue& Value);
 	virtual void Look(const FInputActionValue& Value);
 
-
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
 };

@@ -211,6 +211,36 @@ void AXMUFoundationCharacter::OnRep_ReplicatedAcceleration()
 	}
 }
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Crouch */
+
+float AXMUFoundationCharacter::GetCrouchPercentage() const
+{
+	if (GetFoundationMovement())
+	{
+		float Percentage = GetFoundationMovement()->GetCrouchProgress() / GetFoundationMovement()->GetCrouchTransitionTime();
+
+		bool bUnCrouching;
+		if (GetLocalRole() != ROLE_SimulatedProxy)
+		{
+			bUnCrouching = !bIsCrouched || GetFoundationMovement()->IsLeavingCrouch();
+		}
+		else
+		{
+			// sim proxies instantly complete crouch, so they do not have info about transition
+			bUnCrouching = !bIsCrouched;
+		}
+		// we use 1 - x because Percentage always increases from 0 to 1, but we want 1 to indicate "full crouch state"
+		return bUnCrouching ? 1.f - Percentage : Percentage;
+	}
+	return 0.f;
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Input */
+
 void AXMUFoundationCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
@@ -246,5 +276,8 @@ void AXMUFoundationCharacter::Look(const FInputActionValue& Value)
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 
 

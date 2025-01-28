@@ -489,8 +489,11 @@ protected:
 	virtual void FinishCrouch(bool bClientSimulation);
 	virtual void FinishUnCrouch(bool bClientSimulation);
 private:
+	/** Tracked on simulated proxies for animation purposes */
 	float CrouchProgress;
+	/** Not tracked on simulated proxies because they instantly crouch / un-crouch */
 	bool bCrouchTransitioning;
+	/** Not tracked on simulated proxies because they instantly crouch / un-crouch */
 	bool bWaitingToCrouch;
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
