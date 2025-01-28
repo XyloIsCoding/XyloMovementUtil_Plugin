@@ -127,6 +127,8 @@ void FXMUSavedMove_Character_Foundation::Clear()
 	SavedCoyoteTimeDuration = 0.f;
 
 	CrouchProgress = 0.f;
+	bCrouchTransitioning = false;
+	bWaitingToCrouch = false;
 
 	AnimRootMotionTransitionName = "";
 	bAnimRootMotionTransitionFinishedLastFrame = false;
@@ -176,6 +178,16 @@ bool FXMUSavedMove_Character_Foundation::CanCombineWith(const FSavedMovePtr& New
 		return false;
 	}
 
+	if (bCrouchTransitioning != NewFoundationMove->bCrouchTransitioning)
+	{
+		return false;
+	}
+
+	if (bWaitingToCrouch != NewFoundationMove->bWaitingToCrouch)
+	{
+		return false;
+	}
+
 	// Compressed flags not equal, can't combine. This covers jump and crouch as well as any custom movement flags from overrides.
 	if (GetFoundationCompressedFlags() != NewFoundationMove->GetFoundationCompressedFlags())
 	{
@@ -211,6 +223,9 @@ void FXMUSavedMove_Character_Foundation::SetMoveFor(ACharacter* C, float InDelta
 
 	AXMUFoundationCharacter* FoundationCharacter = Cast<AXMUFoundationCharacter>(C);
 	UXMUFoundationMovement* FoundationMovement = Cast<UXMUFoundationMovement>(C->GetCharacterMovement());
+
+	bCrouchTransitioning = FoundationMovement->IsCrouchTransitioning();
+	bWaitingToCrouch = FoundationMovement->IsWaitingToCrouch();
 	
 	AnimRootMotionTransitionName = FoundationMovement->AnimRootMotionTransition.Name;
 	bAnimRootMotionTransitionFinishedLastFrame = FoundationMovement->AnimRootMotionTransition.bFinishedLastFrame;
@@ -248,6 +263,8 @@ void FXMUSavedMove_Character_Foundation::PrepMoveFor(ACharacter* C)
 	FoundationMovement->RootMotionSourceTransition.bFinishedLastFrame = bRootMotionSourceTransitionFinishedLastFrame;
 
 	FoundationMovement->SetCrouchProgress(CrouchProgress);
+	FoundationMovement->SetCrouchTransitioning(bCrouchTransitioning);
+	FoundationMovement->SetWaitingToCrouch(bWaitingToCrouch);
 }
 
 void FXMUSavedMove_Character_Foundation::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
@@ -349,13 +366,14 @@ void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSecon
 	SetCharge(GetCharge() + ChargeRegenRate * DeltaSeconds);
 	
 	SetCoyoteTimeDuration(GetCoyoteTimeDuration() - DeltaSeconds);
+
+
+	// tick crouch progress (we keep track of the time for sim proxies too, for animation purposes)
+	SetCrouchProgress(GetCrouchProgress() + DeltaSeconds);
 	
 	// Proxies get replicated crouch state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		// tick progress
-		SetCrouchProgress(GetCrouchProgress() + DeltaSeconds);
-		
 		// Check for a change in crouch state. Players toggle crouch by changing bWantsToCrouch.
 		const bool bIsCrouching = IsCrouching();
 		if (bIsCrouching && (!bWantsToCrouch || !CanCrouchInCurrentState()))
@@ -371,7 +389,7 @@ void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSecon
 		}
 
 		// check if it needs to finish the crouch transition
-		if (bCrouchTransitioning && GetCrouchProgress() == CrouchTransitionTime)
+		if (bCrouchTransitioning && GetCrouchProgress() == GetCrouchTransitionTime())
 		{
 			if (bWaitingToCrouch)
 			{
@@ -983,9 +1001,28 @@ void UXMUFoundationMovement::PostRootMotionSourceTransition(FString TransitionNa
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Two Steps Crouch */
 
+void UXMUFoundationMovement::SetWalkingCrouchTransitionTime(float NewCrouchTransitionTime)
+{
+	WalkingCrouchTransitionTime = FMath::Min(0.f, NewCrouchTransitionTime);
+}
+
+void UXMUFoundationMovement::SetFallingCrouchTransitionTime(float NewCrouchTransitionTime)
+{
+	FallingCrouchTransitionTime = FMath::Min(0.f, NewCrouchTransitionTime);
+}
+
+float UXMUFoundationMovement::GetCrouchTransitionTime() const
+{
+	if (IsFalling())
+	{
+		return FallingCrouchTransitionTime;
+	}
+	return WalkingCrouchTransitionTime;
+}
+
 void UXMUFoundationMovement::SetCrouchProgress(float NewCrouchProgress)
 {
-	CrouchProgress = FMath::Clamp(NewCrouchProgress, 0.f, CrouchTransitionTime);
+	CrouchProgress = FMath::Clamp(NewCrouchProgress, 0.f, GetCrouchTransitionTime());
 }
 
 void UXMUFoundationMovement::SetCrouchTransitioning(bool NewValue)

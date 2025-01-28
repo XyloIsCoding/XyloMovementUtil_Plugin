@@ -58,7 +58,7 @@ void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 		else
 		{
 			UnCrouch(false);
-			if (bIsCrouched) FoundationMovement->UnCrouch(false);
+			if (bIsCrouched) FoundationMovement->BeginUnCrouch(false);
 		}
 	}
 

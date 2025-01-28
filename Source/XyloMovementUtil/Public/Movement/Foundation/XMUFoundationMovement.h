@@ -112,6 +112,8 @@ public:
 		, StartCoyoteTimeDuration(0)
 		, SavedCoyoteTimeDuration(0)
 		, CrouchProgress(0)
+		, bCrouchTransitioning(0)
+		, bWaitingToCrouch(0)
 		, AnimRootMotionTransitionName("")
 		, bAnimRootMotionTransitionFinishedLastFrame(0)
 		, RootMotionSourceTransitionName("")
@@ -133,6 +135,8 @@ public:
 	float SavedCoyoteTimeDuration;
 
 	float CrouchProgress;
+	uint32 bCrouchTransitioning : 1;
+	uint32 bWaitingToCrouch : 1;
 
 	FString AnimRootMotionTransitionName;
 	uint32 bAnimRootMotionTransitionFinishedLastFrame : 1;
@@ -460,12 +464,22 @@ protected:
 	/* Two Steps Crouch */
 
 public:
+	void SetWalkingCrouchTransitionTime(float NewCrouchTransitionTime);
+	void SetFallingCrouchTransitionTime(float NewCrouchTransitionTime);
+	float GetCrouchTransitionTime() const;
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Character Movement: Crouching")
+	float WalkingCrouchTransitionTime;
+	UPROPERTY(EditDefaultsOnly, Category = "Character Movement: Crouching")
+	float FallingCrouchTransitionTime;
+	
+public:
 	void SetCrouchProgress(float NewCrouchProgress);
 	float GetCrouchProgress() const { return CrouchProgress; }
 	void SetCrouchTransitioning(bool NewValue);
-	bool GetCrouchTransitioning() const { return bCrouchTransitioning; }
+	bool IsCrouchTransitioning() const { return bCrouchTransitioning; }
 	void SetWaitingToCrouch(bool NewValue);
-	bool GetWaitingToCrouch() const { return bWaitingToCrouch; }
+	bool IsWaitingToCrouch() const { return bWaitingToCrouch; }
 public:
 	virtual void BeginCrouch(bool bClientSimulation);
 	virtual void BeginUnCrouch(bool bClientSimulation);
@@ -476,8 +490,6 @@ private:
 	float CrouchProgress;
 	bool bCrouchTransitioning;
 	bool bWaitingToCrouch;
-	UPROPERTY(EditDefaultsOnly, Category = "Character Movement: Walking")
-	float CrouchTransitionTime;
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
