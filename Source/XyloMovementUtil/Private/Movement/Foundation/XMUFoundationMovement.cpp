@@ -388,7 +388,7 @@ void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSecon
 		// check if it needs to finish the crouch transition
 		if (IsCrouchTransitioning() && GetCrouchProgress() == GetCrouchTransitionTime())
 		{
-			if (IsWaitingToCrouch())
+			if (IsCrouching())
 			{
 				FinishCrouch(false);
 			}
