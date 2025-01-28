@@ -378,7 +378,7 @@ void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSecon
 		const bool bIsCrouching = IsCrouching();
 		if (bIsCrouching && (!bWantsToCrouch || !CanCrouchInCurrentState()))
 		{
-			if (!(bCrouchTransitioning && !bWaitingToCrouch)) // do not begin uncrouch if we are already transitioning to uncrouch
+			if (!IsLeavingCrouch()) // do not begin uncrouch if we are already transitioning to uncrouch
 			{
 				BeginUnCrouch(false);
 			}
@@ -389,9 +389,9 @@ void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSecon
 		}
 
 		// check if it needs to finish the crouch transition
-		if (bCrouchTransitioning && GetCrouchProgress() == GetCrouchTransitionTime())
+		if (IsCrouchTransitioning() && GetCrouchProgress() == GetCrouchTransitionTime())
 		{
-			if (bWaitingToCrouch)
+			if (IsWaitingToCrouch())
 			{
 				FinishCrouch(false);
 			}
@@ -1033,6 +1033,16 @@ void UXMUFoundationMovement::SetCrouchTransitioning(bool NewValue)
 void UXMUFoundationMovement::SetWaitingToCrouch(bool NewValue)
 {
 	bWaitingToCrouch = NewValue;
+}
+
+bool UXMUFoundationMovement::IsEnteringCrouch() const
+{
+	return IsCrouchTransitioning() && IsWaitingToCrouch();
+}
+
+bool UXMUFoundationMovement::IsLeavingCrouch() const
+{
+	return IsCrouchTransitioning() && !IsWaitingToCrouch();
 }
 
 void UXMUFoundationMovement::BeginCrouch(bool bClientSimulation)

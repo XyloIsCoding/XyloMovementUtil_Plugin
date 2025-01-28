@@ -98,7 +98,7 @@ void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 
 bool AXMUFoundationCharacter::CanJumpInternal_Implementation() const
 {
-	return !bIsCrouched && JumpIsAllowed(); // XMU Change: changed JumpIsAllowedInternal in JumpIsAllowed
+	return (!bIsCrouched || GetFoundationMovement()->IsLeavingCrouch()) && JumpIsAllowed(); // XMU Change: changed JumpIsAllowedInternal in JumpIsAllowed
 }
 
 bool AXMUFoundationCharacter::JumpIsAllowed() const

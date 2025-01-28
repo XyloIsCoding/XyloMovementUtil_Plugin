@@ -480,6 +480,8 @@ public:
 	bool IsCrouchTransitioning() const { return bCrouchTransitioning; }
 	void SetWaitingToCrouch(bool NewValue);
 	bool IsWaitingToCrouch() const { return bWaitingToCrouch; }
+	bool IsEnteringCrouch() const;
+	bool IsLeavingCrouch() const;
 public:
 	virtual void BeginCrouch(bool bClientSimulation);
 	virtual void BeginUnCrouch(bool bClientSimulation);
