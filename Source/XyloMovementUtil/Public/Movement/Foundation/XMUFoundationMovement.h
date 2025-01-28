@@ -475,7 +475,7 @@ private:
 	
 public:
 	void SetCrouchProgress(float NewCrouchProgress);
-	float GetCrouchProgress() const { return CrouchProgress; }
+	float GetCrouchProgress() const;
 	void SetCrouchTransitioning(bool NewValue);
 	bool IsCrouchTransitioning() const { return bCrouchTransitioning; }
 	void SetWaitingToCrouch(bool NewValue);
@@ -491,7 +491,9 @@ protected:
 private:
 	/** Tracked on simulated proxies for animation purposes */
 	float CrouchProgress;
-	/** Not tracked on simulated proxies because they instantly crouch / un-crouch */
+	/** Tracked on simulated proxies for animation purposes
+	 * <p>	on authority and autonomous proxy is set to false in FinishCrouch and FinishUnCrouch, while for
+	 *		sim proxies is set to false when transition time reaches the max */
 	bool bCrouchTransitioning;
 	/** Not tracked on simulated proxies because they instantly crouch / un-crouch */
 	bool bWaitingToCrouch;

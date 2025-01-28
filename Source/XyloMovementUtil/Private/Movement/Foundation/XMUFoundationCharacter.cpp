@@ -98,7 +98,7 @@ void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 
 bool AXMUFoundationCharacter::CanJumpInternal_Implementation() const
 {
-	return (!bIsCrouched || GetFoundationMovement()->IsLeavingCrouch()) && JumpIsAllowed(); // XMU Change: changed JumpIsAllowedInternal in JumpIsAllowed
+	return !bIsCrouched && JumpIsAllowed(); // XMU Change: changed JumpIsAllowedInternal in JumpIsAllowed
 }
 
 bool AXMUFoundationCharacter::JumpIsAllowed() const
@@ -219,19 +219,9 @@ float AXMUFoundationCharacter::GetCrouchPercentage() const
 	if (GetFoundationMovement())
 	{
 		float Percentage = GetFoundationMovement()->GetCrouchProgress() / GetFoundationMovement()->GetCrouchTransitionTime();
-
-		bool bUnCrouching;
-		if (GetLocalRole() != ROLE_SimulatedProxy)
-		{
-			bUnCrouching = !bIsCrouched || GetFoundationMovement()->IsLeavingCrouch();
-		}
-		else
-		{
-			// sim proxies instantly complete crouch, so they do not have info about transition
-			bUnCrouching = !bIsCrouched;
-		}
+		
 		// we use 1 - x because Percentage always increases from 0 to 1, but we want 1 to indicate "full crouch state"
-		return bUnCrouching ? 1.f - Percentage : Percentage;
+		return bIsCrouched ? Percentage : 1.f - Percentage;
 	}
 	return 0.f;
 }

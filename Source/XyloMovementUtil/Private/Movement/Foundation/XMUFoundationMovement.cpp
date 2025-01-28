@@ -378,10 +378,7 @@ void UXMUFoundationMovement::UpdateCharacterStateBeforeMovement(float DeltaSecon
 		const bool bIsCrouching = IsCrouching();
 		if (bIsCrouching && (!bWantsToCrouch || !CanCrouchInCurrentState()))
 		{
-			if (!IsLeavingCrouch()) // do not begin uncrouch if we are already transitioning to uncrouch
-			{
-				BeginUnCrouch(false);
-			}
+			BeginUnCrouch(false);
 		}
 		else if (!bIsCrouching && bWantsToCrouch && CanCrouchInCurrentState())
 		{
@@ -1023,6 +1020,25 @@ float UXMUFoundationMovement::GetCrouchTransitionTime() const
 void UXMUFoundationMovement::SetCrouchProgress(float NewCrouchProgress)
 {
 	CrouchProgress = FMath::Clamp(NewCrouchProgress, 0.f, GetCrouchTransitionTime());
+
+	// set crouch transitioning to false for sim proxies (auth proxy and authority do
+	// it in FinishCrouch / FinishUnCrouch functions)
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		if (CrouchProgress == GetCrouchTransitionTime())
+		{
+			SetCrouchTransitioning(false);
+		}
+	}
+}
+
+float UXMUFoundationMovement::GetCrouchProgress() const
+{
+	if (IsCrouchTransitioning())
+	{
+		return CrouchProgress;
+	}
+	return GetCrouchTransitionTime();
 }
 
 void UXMUFoundationMovement::SetCrouchTransitioning(bool NewValue)
@@ -1053,10 +1069,10 @@ void UXMUFoundationMovement::BeginCrouch(bool bClientSimulation)
 	}
 
 	SetCrouchProgress(0.f);
+	SetCrouchTransitioning(true);
 	
 	if (!bClientSimulation)
 	{
-		SetCrouchTransitioning(true);
 		SetWaitingToCrouch(true);
 		CharacterOwner->bIsCrouched = true;
 	}
@@ -1085,11 +1101,13 @@ void UXMUFoundationMovement::BeginUnCrouch(bool bClientSimulation)
 			SetCrouchProgress(0.f);
 			SetCrouchTransitioning(true);
 			SetWaitingToCrouch(false);
+			CharacterOwner->bIsCrouched = false;
 		}
 	}
 	else
 	{
 		SetCrouchProgress(0.f);
+		SetCrouchTransitioning(true);
 		FinishUnCrouch(bClientSimulation);
 	}
 }
@@ -1115,7 +1133,6 @@ void UXMUFoundationMovement::FinishUnCrouch(bool bClientSimulation)
 	if (!bClientSimulation)
 	{
 		SetCrouchTransitioning(false);
-		CharacterOwner->bIsCrouched = false;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("finishing un-crouch"))
 }
