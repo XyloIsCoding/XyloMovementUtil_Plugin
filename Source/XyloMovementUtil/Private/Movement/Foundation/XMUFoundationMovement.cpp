@@ -484,9 +484,9 @@ void UXMUFoundationMovement::Crouch(bool bClientSimulation)
 	FXMUResizeCapsuleHHResult Result;
 	ResizeCapsuleHH(GetCrouchedHalfHeight(), ScalingMode, bClientSimulation, Result);
 	
-	if (!bClientSimulation)
+	if (!bClientSimulation && Result.Success)
 	{
-		CharacterOwner->bIsCrouched = Result.Success;
+		CharacterOwner->bIsCrouched = true;
 	}
 	
 	if (Result.Success || bClientSimulation)
@@ -502,9 +502,9 @@ void UXMUFoundationMovement::UnCrouch(bool bClientSimulation)
 	FXMUResizeCapsuleHHResult Result;
 	ResizeCapsuleHH(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), ScalingMode, bClientSimulation, Result);
 	
-	if (!bClientSimulation)
+	if (!bClientSimulation && Result.Success)
 	{
-		CharacterOwner->bIsCrouched = !Result.Success;
+		CharacterOwner->bIsCrouched = false;
 	}
 	
 	if (Result.Success || bClientSimulation)
