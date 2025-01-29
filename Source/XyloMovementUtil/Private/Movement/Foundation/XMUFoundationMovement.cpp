@@ -1154,7 +1154,6 @@ void UXMUFoundationMovement::FinishCrouch(bool bClientSimulation)
 
 	// no result checks needed because we are shrinking the capsule
 	CharacterOwner->OnStartCrouch( Result.HalfHeightAdjust, Result.ScaledHalfHeightAdjust);
-	UE_LOG(LogTemp, Warning, TEXT("finishing crouch"))
 }
 
 void UXMUFoundationMovement::FinishUnCrouch(bool bClientSimulation)
@@ -1163,7 +1162,6 @@ void UXMUFoundationMovement::FinishUnCrouch(bool bClientSimulation)
 	{
 		SetCrouchTransitioning(false);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("finishing un-crouch"))
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
