@@ -113,7 +113,6 @@ public:
 		, SavedCoyoteTimeDuration(0)
 		, CrouchProgress(0)
 		, bCrouchTransitioning(0)
-		, bWaitingToCrouch(0)
 		, AnimRootMotionTransitionName("")
 		, bAnimRootMotionTransitionFinishedLastFrame(0)
 		, RootMotionSourceTransitionName("")
@@ -136,7 +135,6 @@ public:
 
 	float CrouchProgress;
 	uint32 bCrouchTransitioning : 1;
-	uint32 bWaitingToCrouch : 1;
 
 	FString AnimRootMotionTransitionName;
 	uint32 bAnimRootMotionTransitionFinishedLastFrame : 1;
@@ -366,6 +364,7 @@ public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 	virtual void SimulateMovement(float DeltaTime) override;
+	virtual bool CanAttemptJump() const override;
 	virtual bool DoJump(bool bReplayingMoves) override;
 	virtual void Crouch(bool bClientSimulation) override;
 	virtual void UnCrouch(bool bClientSimulation) override;
@@ -373,6 +372,12 @@ public:
 protected:
 	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
+
+	virtual void UpdateStaminaBeforeMovement(float DeltaSeconds);
+	virtual void UpdateChargeBeforeMovement(float DeltaSeconds);
+	virtual void UpdateCoyoteTimeBeforeMovement(float DeltaSeconds);
+	virtual void UpdateCrouchBeforeMovement(float DeltaSeconds);
+	virtual void UpdateCrouchAfterMovement(float DeltaSeconds);
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -478,8 +483,6 @@ public:
 	float GetCrouchProgress() const;
 	void SetCrouchTransitioning(bool NewValue);
 	bool IsCrouchTransitioning() const { return bCrouchTransitioning; }
-	void SetWaitingToCrouch(bool NewValue);
-	bool IsWaitingToCrouch() const { return bWaitingToCrouch; }
 	bool IsEnteringCrouch() const;
 	bool IsLeavingCrouch() const;
 public:
@@ -495,8 +498,6 @@ private:
 	 * <p>	on authority and autonomous proxy is set to false in FinishCrouch and FinishUnCrouch, while for
 	 *		sim proxies is set to false when transition time reaches the max */
 	bool bCrouchTransitioning;
-	/** Not tracked on simulated proxies because they instantly crouch / un-crouch */
-	bool bWaitingToCrouch;
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	

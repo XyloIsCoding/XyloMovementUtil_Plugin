@@ -93,6 +93,19 @@ private:
 	FXMUReplicatedAcceleration ReplicatedAcceleration;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
+	/* Jump */
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	bool bRequestUnCrouchOnJump;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	bool bForceUnCrouchOnJump;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	bool bCanJumpWhileCrouching;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
 	/* Crouch */
 
 public:

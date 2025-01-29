@@ -57,8 +57,14 @@ void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 		}
 		else
 		{
-			UnCrouch(false);
-			if (bIsCrouched) FoundationMovement->BeginUnCrouch(false);
+			if (bRequestUnCrouchOnJump || bForceUnCrouchOnJump)
+			{
+				UnCrouch(false);
+				if (bIsCrouched && bForceUnCrouchOnJump)
+				{
+					FoundationMovement->BeginUnCrouch(false);
+				}
+			}
 		}
 	}
 
@@ -98,7 +104,7 @@ void AXMUFoundationCharacter::CheckJumpInput(float DeltaTime)
 
 bool AXMUFoundationCharacter::CanJumpInternal_Implementation() const
 {
-	return !bIsCrouched && JumpIsAllowed(); // XMU Change: changed JumpIsAllowedInternal in JumpIsAllowed
+	return (!bIsCrouched || bCanJumpWhileCrouching) && JumpIsAllowed(); // XMU Change: changed JumpIsAllowedInternal in JumpIsAllowed and added check for bCanJumpWhileCrouching
 }
 
 bool AXMUFoundationCharacter::JumpIsAllowed() const
