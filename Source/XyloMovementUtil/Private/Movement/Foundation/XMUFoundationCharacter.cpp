@@ -200,6 +200,15 @@ FCollisionQueryParams AXMUFoundationCharacter::GetIgnoreCharacterParams() const
 	return Params;
 }
 
+float AXMUFoundationCharacter::GetGroundDistance()
+{
+	if (GetFoundationMovement())
+	{
+		return GetFoundationMovement()->GetGroundInfo().GroundDistance;
+	}
+	return 0.f;
+}
+
 void AXMUFoundationCharacter::OnRep_ReplicatedAcceleration()
 {
 	if (UXMUFoundationMovement* XMUMovementComponent = Cast<UXMUFoundationMovement>(GetCharacterMovement()))

@@ -84,6 +84,10 @@ private:
 
 public:
 	FCollisionQueryParams GetIgnoreCharacterParams() const;
+
+public:
+	UFUNCTION(BlueprintCallable)
+	virtual float GetGroundDistance();
 	
 protected:
 	UFUNCTION()
