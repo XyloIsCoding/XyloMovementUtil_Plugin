@@ -148,7 +148,7 @@ public:
 	
 	/** Returns true if this move can be combined with NewMove for replication without changing any behavior 
 	 * <p> Call Context: Called in ReplicateMoveToServer between SetMoveFor and PerformMovement
-	 * <p> Note: Returns true if nothing important changed during last update */
+	 * <p> Note: Returns true if nothing important changed between the start of the last move and this one */
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 
 	/** Combine this move with an older move and update relevant state. 
@@ -396,12 +396,13 @@ public:
 	UFUNCTION(BlueprintPure)
 	virtual bool IsCustomMovementMode(EXMUCustomMovementMode InCustomMovementMode) const;
 
+public:
+	UFUNCTION(BlueprintCallable, Category = "Foundation Movement")
+	virtual float GetScaledCapsuleRadius() const;
+	UFUNCTION(BlueprintCallable, Category = "Foundation Movement")
+	virtual float GetScaledCapsuleHalfHeight() const;
 protected:
 	virtual bool IsServer() const;
-	UFUNCTION(BlueprintCallable, Category = "Foundation Movement")
-	virtual float CapR() const;
-	UFUNCTION(BlueprintCallable, Category = "Foundation Movement")
-	virtual float CapHH() const;
 
 	virtual FVector GetControllerForwardVector() const;
 	virtual FVector GetControllerRightVector() const;

@@ -162,6 +162,7 @@ bool FXMUSavedMove_Character_Foundation::CanCombineWith(const FSavedMovePtr& New
 		return false;
 	}
 
+	// TODO: find out if this is even needed
 	if ((StartCoyoteTimeDuration == 0.f) != (NewFoundationMove->StartCoyoteTimeDuration == 0.f))
 	{
 		return false;
@@ -278,6 +279,11 @@ void FXMUSavedMove_Character_Foundation::PostUpdate(ACharacter* C, EPostUpdateMo
 			}
 
 			if (bChargeDrained != MoveComp->IsChargeDrained())
+			{
+				bForceNoCombine = true;
+			}
+
+			if (bCrouchTransitioning != MoveComp->IsCrouchTransitioning())
 			{
 				bForceNoCombine = true;
 			}
@@ -729,12 +735,12 @@ bool UXMUFoundationMovement::IsServer() const
 	return CharacterOwner->HasAuthority();
 }
 
-float UXMUFoundationMovement::CapR() const
+float UXMUFoundationMovement::GetScaledCapsuleRadius() const
 {
 	return CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleRadius();
 }
 
-float UXMUFoundationMovement::CapHH() const
+float UXMUFoundationMovement::GetScaledCapsuleHalfHeight() const
 {
 	return CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 }
