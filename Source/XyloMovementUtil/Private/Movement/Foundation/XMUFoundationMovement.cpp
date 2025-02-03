@@ -1103,7 +1103,7 @@ void UXMUFoundationMovement::BeginCrouch(bool bClientSimulation)
 		return;
 	}
 
-	SetCrouchProgress(0.f);
+	SetCrouchProgress(GetCrouchTransitionTime() - GetCrouchProgress());
 	SetCrouchTransitioning(true);
 	
 	if (!bClientSimulation)
@@ -1128,7 +1128,7 @@ void UXMUFoundationMovement::BeginUnCrouch(bool bClientSimulation)
 	ResizeCapsuleHH(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), ScalingMode, bClientSimulation, Result);
 	if (!bClientSimulation && !Result.Success) return;
 
-	SetCrouchProgress(0.f);
+	SetCrouchProgress(GetCrouchTransitionTime() - GetCrouchProgress());
 	SetCrouchTransitioning(true);
 		
 	if (!bClientSimulation)
