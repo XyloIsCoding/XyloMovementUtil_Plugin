@@ -1127,8 +1127,6 @@ void UXMUFoundationMovement::BeginUnCrouch(bool bClientSimulation)
 	FXMUResizeCapsuleHHResult Result;
 	ResizeCapsuleHH(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), ScalingMode, bClientSimulation, Result);
 	if (!bClientSimulation && !Result.Success) return;
-	
-	CharacterOwner->OnEndCrouch( Result.HalfHeightAdjust, Result.ScaledHalfHeightAdjust);
 
 	SetCrouchProgress(0.f);
 	SetCrouchTransitioning(true);
@@ -1145,6 +1143,8 @@ void UXMUFoundationMovement::BeginUnCrouch(bool bClientSimulation)
 	{
 		FinishUnCrouch(bClientSimulation);
 	}
+
+	CharacterOwner->OnEndCrouch( Result.HalfHeightAdjust, Result.ScaledHalfHeightAdjust);
 }
 
 void UXMUFoundationMovement::FinishCrouch(bool bClientSimulation)
