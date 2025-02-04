@@ -336,8 +336,8 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
 	
 	NetworkStaminaCorrectionThreshold = 2.f;
 	NetworkChargeCorrectionThreshold = 2.f;
-	SetStamina(DefaultMaxStamina);
-	SetCharge(DefaultMaxCharge);
+	SetMaxStamina(100.f);
+	SetMaxCharge(100.f);
 
 	NetworkCoyoteTimeDurationCorrectionThreshold = 0.1f;
 	SetMaxCoyoteTimeDuration(0.4f);
@@ -657,6 +657,7 @@ void UXMUFoundationMovement::OnMovementModeChanged(EMovementMode PreviousMovemen
 void UXMUFoundationMovement::UpdateStaminaBeforeMovement(float DeltaSeconds)
 {
 	SetStamina(GetStamina() + StaminaRegenRate * DeltaSeconds);
+	DebugStamina();
 }
 
 void UXMUFoundationMovement::UpdateChargeBeforeMovement(float DeltaSeconds)
