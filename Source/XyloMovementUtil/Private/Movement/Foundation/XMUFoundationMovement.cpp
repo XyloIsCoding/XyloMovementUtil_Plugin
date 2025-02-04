@@ -657,7 +657,6 @@ void UXMUFoundationMovement::OnMovementModeChanged(EMovementMode PreviousMovemen
 void UXMUFoundationMovement::UpdateStaminaBeforeMovement(float DeltaSeconds)
 {
 	SetStamina(GetStamina() + StaminaRegenRate * DeltaSeconds);
-	DebugStamina();
 }
 
 void UXMUFoundationMovement::UpdateChargeBeforeMovement(float DeltaSeconds)
@@ -1437,6 +1436,18 @@ bool UXMUFoundationMovement::ServerCheckClientError(float ClientTimeStamp, float
 	
 	const FXMUFoundationNetworkMoveData* CurrentMoveData = static_cast<const FXMUFoundationNetworkMoveData*>(GetCurrentNetworkMoveData());
 
+	/*
+	GEngine->AddOnScreenDebugMessage(38262, 1.f, FColor::Orange, FString::Printf(TEXT("Delta Stamina From Regen Alone %f    "), DeltaTime*StaminaRegenRate));
+	GEngine->AddOnScreenDebugMessage(38263, 1.f, FColor::Orange, FString::Printf(TEXT("Error (Autonomous - Authority) %f    "), CurrentMoveData->Stamina - Stamina));
+	GEngine->AddOnScreenDebugMessage(38264, 1.f, FColor::Orange, FString::Printf(TEXT("[Authority] Stamina %f    "), Stamina));
+	GEngine->AddOnScreenDebugMessage(38265, 1.f, FColor::Orange, FString::Printf(TEXT("[Autonomous] Stamina %f    "), CurrentMoveData->Stamina));
+
+	if (FMath::Abs(CurrentMoveData->Stamina - Stamina) > NetworkStaminaCorrectionThreshold)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stamina error %f"), CurrentMoveData->Stamina - Stamina)
+	}
+	*/
+	
 	// This will trigger a client correction if the Stamina value in the Client differs NetworkStaminaCorrectionThreshold (2.f default) units from the one in the server
 	// Desyncs can happen if we set the Stamina directly in Gameplay code (ie: GAS)
 	if (!FMath::IsNearlyEqual(CurrentMoveData->Stamina, Stamina, NetworkStaminaCorrectionThreshold))
