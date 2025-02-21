@@ -11,6 +11,8 @@ AXMUFoundationCharacter::AXMUFoundationCharacter(const FObjectInitializer& Objec
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UXMUFoundationMovement>(ACharacter::CharacterMovementComponentName))
 {
 	FoundationMovement = Cast<UXMUFoundationMovement>(GetCharacterMovement());
+
+	bForceUnCrouchOnJump = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

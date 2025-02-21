@@ -318,15 +318,13 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
 	SetMoveResponseDataContainer(FoundationMoveResponseDataContainer);
 	SetNetworkMoveDataContainer(FoundationMoveDataContainer);
 
-	bUseFlatBaseForFloorChecks = true;
-	
 	GravityScale = 1.5f;
-	JumpZVelocity = 750.f;
+	JumpZVelocity = 500.f;
 	
 	MaxWalkSpeed = 400.f;
 	BrakingFrictionFactor = 1.f;
 	
-	SetCrouchedHalfHeight(60.f);
+	SetCrouchedHalfHeight(70.f);
 	NavAgentProps.bCanCrouch = true;
 	bCanWalkOffLedgesWhenCrouching = true;
 	MaxWalkSpeedCrouched = 200.f;
@@ -342,6 +340,9 @@ UXMUFoundationMovement::UXMUFoundationMovement(const FObjectInitializer& ObjectI
 	NetworkCoyoteTimeDurationCorrectionThreshold = 0.1f;
 	SetMaxCoyoteTimeDuration(0.4f);
 	SetCoyoteTimeFullDurationVelocity(1200.f);
+
+	WalkingCrouchTransitionTime = 0.2f;
+	FallingCrouchTransitionTime = 0.2f;
 	
 	MaxAirSpeed = 200.f;
 }
