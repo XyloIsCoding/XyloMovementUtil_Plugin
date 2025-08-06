@@ -116,6 +116,12 @@ public:
 	/** ranges from 0 (when standing) to 1 (when fully crouched) */
 	UFUNCTION(BlueprintCallable)
 	float GetCrouchPercentage() const;
+	/** Call on tick if you need to smooth the crouch transition
+	 * (uses BaseEyeHeight and CrouchedEyeHeight to position the FirstPersonRoot)
+	 * @param FirstPersonRoot: SceneComponent that is parent of both first person arms and camera
+	 * @param RootToCameraDistance: Distance from FirstPersonRoot and camera
+	 * @param DeltaSeconds: this tick's DeltaSeconds. */
+	virtual void SmoothFirstPersonCrouch(USceneComponent* FirstPersonRoot, float RootToCameraDistance, float DeltaSeconds);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	

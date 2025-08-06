@@ -243,6 +243,28 @@ float AXMUFoundationCharacter::GetCrouchPercentage() const
 	return 0.f;
 }
 
+void AXMUFoundationCharacter::SmoothFirstPersonCrouch(USceneComponent* FirstPersonRoot, float RootToCameraDistance, float DeltaSeconds)
+{
+	if (GetFoundationMovement() && FirstPersonRoot)
+	{
+		FVector RelativeLocation = FirstPersonRoot->GetRelativeLocation();
+		if (GetFoundationMovement()->IsEnteringCrouch() || GetFoundationMovement()->IsLeavingCrouch())
+		{
+			const float DeltaCapsuleHalfHeight = GetFoundationMovement()->bCrouchMaintainsBaseLocation ? GetFoundationMovement()->GetScaledCapsuleHalfHeight() - GetFoundationMovement()->GetCrouchedHalfHeight() : 0.f;
+			
+			const float DefaultBaseEyeHeight = GetDefault<APawn>(GetClass())->BaseEyeHeight;
+			const float DefaultRootHeight = DefaultBaseEyeHeight - RootToCameraDistance; // we position the root at BaseEyeHeight - 'Neck Length'
+			const float TargetRootHeight = DefaultRootHeight - (DeltaCapsuleHalfHeight + (DefaultBaseEyeHeight - CrouchedEyeHeight))*GetCrouchPercentage();
+			RelativeLocation.Z = TargetRootHeight;
+		}
+		else
+		{
+			RelativeLocation.Z = BaseEyeHeight - RootToCameraDistance; // we position the root at BaseEyeHeight - 'Neck Length'
+		}
+		FirstPersonRoot->SetRelativeLocation(RelativeLocation);
+	}
+}
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/

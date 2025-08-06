@@ -416,6 +416,9 @@ protected:
 protected:
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxAirSpeed;
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	bool bUseCustomCalcVelocity = true;
+	
 	
 public:
 	void SetReplicatedAcceleration(const FVector& InAcceleration);

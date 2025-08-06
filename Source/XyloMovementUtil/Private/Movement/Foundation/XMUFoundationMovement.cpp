@@ -434,7 +434,7 @@ void UXMUFoundationMovement::UpdateCharacterStateAfterMovement(float DeltaSecond
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
 		// if it has AnimRootMotionTransition montage and we have a RootMotionMontageInstance, check if they are different
-		const bool bHasAnimRootMotionMontage = AnimRootMotionTransition.Montage.Get();
+		const bool bHasAnimRootMotionMontage = AnimRootMotionTransition.Montage.Get() != nullptr;
 		FAnimMontageInstance* RootMotionMontageInstance = GetCharacterOwner()->GetRootMotionAnimMontageInstance();
 		const bool bMontageChanged = (bHasAnimRootMotionMontage && RootMotionMontageInstance) ? AnimRootMotionTransition.Montage.Get() != RootMotionMontageInstance->Montage : false;
 		// if we had AnimRootMotion, but we don't anymore, or montage changed then set that we finished transition
@@ -600,27 +600,30 @@ void UXMUFoundationMovement::CalcVelocity(float DeltaTime, float Friction, bool 
 
 	/** XMU Change */
 
-	/*
-	// Apply input acceleration
-	if (!bZeroAcceleration)
+	if (bUseCustomCalcVelocity)
 	{
-		const float NewMaxInputSpeed = IsExceedingMaxSpeed(MaxInputSpeed) ? Velocity.Size() : MaxInputSpeed;
-		Velocity += Acceleration * DeltaTime;
-		Velocity = Velocity.GetClampedToMaxSize(NewMaxInputSpeed);
+		// Apply input acceleration
+		if (!bZeroAcceleration)
+		{
+			// Find veer
+			const FVector AccelDir = Acceleration.GetSafeNormal2D();  //AcellDir = WishDir
+			const float CurrentSpeed = Velocity.X * AccelDir.X + Velocity.Y * AccelDir.Y; // DotProduct(Velocity, AccelDir) in 2D
+			// Get add speed with air speed cap
+			const float RealMaxSpeed = (IsFalling() ? MaxAirSpeed : MaxSpeed);
+			// Apply acceleration
+			const float AddSpeed = FMath::Clamp(RealMaxSpeed - CurrentSpeed, 0.0, MaxAccel * DeltaTime);
+			Velocity += AddSpeed * AccelDir;
+		}
 	}
-	*/
-
-	// Apply input acceleration
-	if (!bZeroAcceleration)
+	else
 	{
-		// Find veer
-		const FVector AccelDir = Acceleration.GetSafeNormal2D();  //AcellDir = WishDir
-		const float CurrentSpeed = Velocity.X * AccelDir.X + Velocity.Y * AccelDir.Y; // DotProduct(Velocity, AccelDir) in 2D
-		// Get add speed with air speed cap
-		const float RealMaxSpeed = (IsFalling() ? MaxAirSpeed : MaxSpeed);
-		// Apply acceleration
-		const float AddSpeed = FMath::Clamp(RealMaxSpeed - CurrentSpeed, 0.0, MaxAccel * DeltaTime);
-		Velocity += AddSpeed * AccelDir;
+		// Apply input acceleration
+		if (!bZeroAcceleration)
+		{
+			const float NewMaxInputSpeed = IsExceedingMaxSpeed(MaxInputSpeed) ? Velocity.Size() : MaxInputSpeed;
+			Velocity += Acceleration * DeltaTime;
+			Velocity = Velocity.GetClampedToMaxSize(NewMaxInputSpeed);
+		}
 	}
 
 	/** ~XMU Change */
